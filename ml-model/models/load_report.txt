@@ -1,0 +1,173 @@
+2025-11-16T17:29:50.386221Z - Loaded lstm_meta.json: {'input_size': 4, 'hidden_size': 64, 'num_layers': 1, 'seq_len': 32, 'dropout': 0.2}
+2025-11-16T17:29:50.387485Z - feature_columns loaded (4 features).
+2025-11-16T17:29:52.221305Z - Scaler loaded: E:\Predictive_Maitenance\ml-model\models\scaler.pkl
+2025-11-16T17:29:56.907513Z - helper_load_model failed: 'input_size'
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 358, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = model_helper(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+2025-11-16T17:29:57.115620Z - model.load_state_dict failed (strict=True): Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 358, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = model_helper(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 428, in <module>
+    model.load_state_dict(state_dict)
+  File "C:\Users\tumba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\module.py", line 2629, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+
+2025-11-16T17:29:57.116723Z - saved keys (8): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:29:57.116723Z - model keys (8): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:29:57.116723Z - saved key shapes (first 200): [('lstm.weight_ih_l0', 'torch.Size([256, 4])'), ('lstm.weight_hh_l0', 'torch.Size([256, 64])'), ('lstm.bias_ih_l0', 'torch.Size([256])'), ('lstm.bias_hh_l0', 'torch.Size([256])'), ('head.1.weight', 'torch.Size([32, 64])'), ('head.1.bias', 'torch.Size([32])'), ('head.3.weight', 'torch.Size([1, 32])'), ('head.3.bias', 'torch.Size([1])')]
+2025-11-16T17:29:57.116723Z - model key shapes (first 200): [('lstm.weight_ih_l0', 'torch.Size([256, 4])'), ('lstm.weight_hh_l0', 'torch.Size([256, 64])'), ('lstm.bias_ih_l0', 'torch.Size([256])'), ('lstm.bias_hh_l0', 'torch.Size([256])'), ('head.0.weight', 'torch.Size([32, 64])'), ('head.0.bias', 'torch.Size([32])'), ('head.2.weight', 'torch.Size([1, 32])'), ('head.2.bias', 'torch.Size([1])')]
+2025-11-16T17:29:57.116723Z - Loaded with strict=False. Missing keys (4): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight']; Unexpected keys (4): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight']
+2025-11-16T17:29:57.116723Z - Loaded LSTM by constructing LSTMRegressor (input_size=4, hidden_size=64, num_layers=1)
+2025-11-16T17:29:58.791312Z - Loaded lstm_meta.json: {'input_size': 4, 'hidden_size': 64, 'num_layers': 1, 'seq_len': 32, 'dropout': 0.2}
+2025-11-16T17:29:58.812140Z - feature_columns loaded (4 features).
+2025-11-16T17:30:00.189680Z - Scaler loaded: E:\Predictive_Maitenance\ml-model\models\scaler.pkl
+2025-11-16T17:30:04.088065Z - helper_load_model failed: 'input_size'
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 358, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = model_helper(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+2025-11-16T17:30:04.094942Z - model.load_state_dict failed (strict=True): Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 358, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = model_helper(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 428, in <module>
+    model.load_state_dict(state_dict)
+  File "C:\Users\tumba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\module.py", line 2629, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+
+2025-11-16T17:30:04.098138Z - saved keys (8): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:30:04.098138Z - model keys (8): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:30:04.098138Z - saved key shapes (first 200): [('lstm.weight_ih_l0', 'torch.Size([256, 4])'), ('lstm.weight_hh_l0', 'torch.Size([256, 64])'), ('lstm.bias_ih_l0', 'torch.Size([256])'), ('lstm.bias_hh_l0', 'torch.Size([256])'), ('head.1.weight', 'torch.Size([32, 64])'), ('head.1.bias', 'torch.Size([32])'), ('head.3.weight', 'torch.Size([1, 32])'), ('head.3.bias', 'torch.Size([1])')]
+2025-11-16T17:30:04.098138Z - model key shapes (first 200): [('lstm.weight_ih_l0', 'torch.Size([256, 4])'), ('lstm.weight_hh_l0', 'torch.Size([256, 64])'), ('lstm.bias_ih_l0', 'torch.Size([256])'), ('lstm.bias_hh_l0', 'torch.Size([256])'), ('head.0.weight', 'torch.Size([32, 64])'), ('head.0.bias', 'torch.Size([32])'), ('head.2.weight', 'torch.Size([1, 32])'), ('head.2.bias', 'torch.Size([1])')]
+2025-11-16T17:30:04.101118Z - Loaded with strict=False. Missing keys (4): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight']; Unexpected keys (4): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight']
+2025-11-16T17:30:04.101118Z - Loaded LSTM by constructing LSTMRegressor (input_size=4, hidden_size=64, num_layers=1)
+2025-11-16T17:31:44.229384Z - Loaded lstm_meta.json: {'input_size': 4, 'hidden_size': 64, 'num_layers': 1, 'seq_len': 32, 'dropout': 0.2}
+2025-11-16T17:31:44.236749Z - feature_columns loaded (4 features).
+2025-11-16T17:31:46.472397Z - Scaler loaded: E:\Predictive_Maitenance\ml-model\models\scaler.pkl
+2025-11-16T17:31:50.788798Z - helper_load_model failed: 'input_size'
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 358, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = model_helper(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+2025-11-16T17:31:50.795035Z - Forcing dropout 0.0 because num_layers==1 (original dropout=0.2)
+2025-11-16T17:31:50.802746Z - model.load_state_dict failed (strict=True): Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 358, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = model_helper(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 447, in <module>
+    model.load_state_dict(state_dict)
+  File "C:\Users\tumba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\module.py", line 2629, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+
+2025-11-16T17:31:50.802746Z - saved keys (8): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:31:50.802746Z - model keys (8): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:31:50.806087Z - saved key shapes (first 200): [('lstm.weight_ih_l0', 'torch.Size([256, 4])'), ('lstm.weight_hh_l0', 'torch.Size([256, 64])'), ('lstm.bias_ih_l0', 'torch.Size([256])'), ('lstm.bias_hh_l0', 'torch.Size([256])'), ('head.1.weight', 'torch.Size([32, 64])'), ('head.1.bias', 'torch.Size([32])'), ('head.3.weight', 'torch.Size([1, 32])'), ('head.3.bias', 'torch.Size([1])')]
+2025-11-16T17:31:50.806087Z - model key shapes (first 200): [('lstm.weight_ih_l0', 'torch.Size([256, 4])'), ('lstm.weight_hh_l0', 'torch.Size([256, 64])'), ('lstm.bias_ih_l0', 'torch.Size([256])'), ('lstm.bias_hh_l0', 'torch.Size([256])'), ('head.0.weight', 'torch.Size([32, 64])'), ('head.0.bias', 'torch.Size([32])'), ('head.2.weight', 'torch.Size([1, 32])'), ('head.2.bias', 'torch.Size([1])')]
+2025-11-16T17:31:50.807554Z - Loaded with strict=False. Missing keys (4): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight']; Unexpected keys (4): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight']
+2025-11-16T17:31:50.807554Z - Loaded LSTM by constructing LSTMRegressor (input_size=4, hidden_size=64, num_layers=1, dropout=0.0)
+2025-11-16T17:34:10.175171Z - Loaded lstm_meta.json: {'input_size': 4, 'hidden_size': 64, 'num_layers': 1, 'seq_len': 32, 'dropout': 0.2}
+2025-11-16T17:34:10.184686Z - feature_columns loaded (4 features).
+2025-11-16T17:34:11.915583Z - Scaler loaded: E:\Predictive_Maitenance\ml-model\models\scaler.pkl
+2025-11-16T17:34:15.694382Z - helper_load_model failed: 'input_size'
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 354, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = helper_load_model(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+2025-11-16T17:34:15.697787Z - Forcing dropout 0.0 because num_layers==1 (original dropout=0.2)
+2025-11-16T17:34:15.707392Z - model.load_state_dict failed (strict=True): Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 354, in <module>
+    model_obj, scaler_from_helper, feature_cols_from_helper, seq_len_from_helper, device_from_helper = helper_load_model(MODELS_DIR)
+                                                                                                       ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "E:\Predictive_Maitenance\ml-model\src\lstm_model.py", line 134, in load_model
+    input_size = ckpt["input_size"]
+                 ~~~~^^^^^^^^^^^^^^
+KeyError: 'input_size'
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "E:\Predictive_Maitenance\ml-model\app.py", line 434, in <module>
+    model.load_state_dict(state_dict)
+  File "C:\Users\tumba\AppData\Local\Packages\PythonSoftwareFoundation.Python.3.11_qbz5n2kfra8p0\LocalCache\local-packages\Python311\site-packages\torch\nn\modules\module.py", line 2629, in load_state_dict
+    raise RuntimeError(
+RuntimeError: Error(s) in loading state_dict for LSTMRegressor:
+	Missing key(s) in state_dict: "head.0.weight", "head.0.bias", "head.2.weight", "head.2.bias". 
+	Unexpected key(s) in state_dict: "head.3.weight", "head.3.bias", "head.1.weight", "head.1.bias". 
+
+2025-11-16T17:34:15.707392Z - saved keys (8): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:34:15.707392Z - model keys (8): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight', 'lstm.bias_hh_l0', 'lstm.bias_ih_l0', 'lstm.weight_hh_l0', 'lstm.weight_ih_l0']
+2025-11-16T17:34:15.709423Z - saved key shapes (first 200): [('head.1.bias', (32,)), ('head.1.weight', (32, 64)), ('head.3.bias', (1,)), ('head.3.weight', (1, 32)), ('lstm.bias_hh_l0', (256,)), ('lstm.bias_ih_l0', (256,)), ('lstm.weight_hh_l0', (256, 64)), ('lstm.weight_ih_l0', (256, 4))]
+2025-11-16T17:34:15.709423Z - model key shapes (first 200): [('head.0.bias', (32,)), ('head.0.weight', (32, 64)), ('head.2.bias', (1,)), ('head.2.weight', (1, 32)), ('lstm.bias_hh_l0', (256,)), ('lstm.bias_ih_l0', (256,)), ('lstm.weight_hh_l0', (256, 64)), ('lstm.weight_ih_l0', (256, 4))]
+2025-11-16T17:34:15.709423Z - Loaded with strict=False. Missing keys (4): ['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight']; Unexpected keys (4): ['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight']
+2025-11-16T17:34:15.714170Z - Attempting shape-based remap: head_missing=['head.0.bias', 'head.0.weight', 'head.2.bias', 'head.2.weight'], head_unexpected=['head.1.bias', 'head.1.weight', 'head.3.bias', 'head.3.weight']
+2025-11-16T17:34:15.716602Z - Determined head remapping: {1: 0, 3: 2}
+2025-11-16T17:34:15.718395Z - Remapped load_state_dict succeeded using remap {1: 0, 3: 2}
+2025-11-16T17:34:15.721124Z - Loaded LSTM by constructing LSTMRegressor (input_size=4, hidden_size=64, num_layers=1, dropout=0.0)

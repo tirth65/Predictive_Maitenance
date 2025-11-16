@@ -39,24 +39,24 @@ export const predictFile = async (file) => {
 
 
 // Sample data - move this to a separate data service
-export const sensorData = [
-  { time: '00:00', pressure: 45, temperature: 75, vibration: 2.1 },
-  { time: '04:00', pressure: 48, temperature: 78, vibration: 2.3 },
-  { time: '08:00', pressure: 52, temperature: 82, vibration: 2.8 },
-  { time: '12:00', pressure: 49, temperature: 79, vibration: 2.4 },
-  { time: '16:00', pressure: 46, temperature: 76, vibration: 2.2 },
-  { time: '20:00', pressure: 44, temperature: 74, vibration: 2.0 },
-];
+// export const sensorData = [
+//   { time: '00:00', pressure: 45, temperature: 75, vibration: 2.1 },
+//   { time: '04:00', pressure: 48, temperature: 78, vibration: 2.3 },
+//   { time: '08:00', pressure: 52, temperature: 82, vibration: 2.8 },
+//   { time: '12:00', pressure: 49, temperature: 79, vibration: 2.4 },
+//   { time: '16:00', pressure: 46, temperature: 76, vibration: 2.2 },
+//   { time: '20:00', pressure: 44, temperature: 74, vibration: 2.0 },
+// ];
 
-export const equipmentData = [
-  { id: 'EQ001', name: 'Motor A1', status: 'Good', health: 85, daysLeft: 45, risk: 'Low' },
-  { id: 'EQ002', name: 'Pump B2', status: 'Warning', health: 60, daysLeft: 15, risk: 'Medium' },
-  { id: 'EQ003', name: 'Compressor C3', status: 'Critical', health: 25, daysLeft: 3, risk: 'High' },
-  { id: 'EQ004', name: 'Generator D4', status: 'Good', health: 90, daysLeft: 60, risk: 'Low' },
-];
+// export const equipmentData = [
+//   { id: 'EQ001', name: 'Motor A1', status: 'Good', health: 85, daysLeft: 45, risk: 'Low' },
+//   { id: 'EQ002', name: 'Pump B2', status: 'Warning', health: 60, daysLeft: 15, risk: 'Medium' },
+//   { id: 'EQ003', name: 'Compressor C3', status: 'Critical', health: 25, daysLeft: 3, risk: 'High' },
+//   { id: 'EQ004', name: 'Generator D4', status: 'Good', health: 90, daysLeft: 60, risk: 'Low' },
+// ];
 
-export const healthDistribution = [
-  { name: 'Good', value: 65, color: '#10B981' },
-  { name: 'Warning', value: 25, color: '#F59E0B' },
-  { name: 'Critical', value: 10, color: '#EF4444' },
-];
+// export const healthDistribution = [
+//   { name: 'Good', value: 65, color: '#10B981' },
+//   { name: 'Warning', value: 25, color: '#F59E0B' },
+//   { name: 'Critical', value: 10, color: '#EF4444' },
+// ];

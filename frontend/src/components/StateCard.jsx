@@ -12,4 +12,4 @@ const StatusCard = ({ title, value, icon: Icon, color = "blue" }) => (
   </div>
 );
 
-export default StatusCard;
+export default StateCard;
