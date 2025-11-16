@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { TrendingUp, CheckCircle } from 'lucide-react';
 import RiskGauge from './RiskGauge';
-import { predictRow, predictFile } from './API';
+import { predictRow, predictFile } from '../services/API';
 
 const PredictionTable = () => {
   const [logInput, setLogInput] = useState('');
@@ -10,9 +10,7 @@ const PredictionTable = () => {
     temperature: '',
     pressure: '',
     vibration: '',
-    rpm: '',
-    // torque: '',
-    // humidity: ''
+    rpm: ''
   });
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState(null);
@@ -132,7 +130,7 @@ const PredictionTable = () => {
                   type="number"
                   value={formValues[key]}
                   onChange={handleFormChange}
-                  placeholder={key}
+                  placeholder={key.replace('_', ' ')}
                   className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
                 />
               ))}

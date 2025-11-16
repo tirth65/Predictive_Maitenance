@@ -1,5 +1,5 @@
-fastapi
-uvicorn
+flask
+flask-cors
 pandas
 numpy
 scikit-learn
@@ -9,6 +9,5 @@ imblearn
 matplotlib
 seaborn
 joblib
-pydantic
 catboost
 optuna
