@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // // import React from 'react';
 // // import { LineChart, Line, XAxis, YAxis, CartesianGrid, ResponsiveContainer } from 'recharts';
 // // import { sensorData } from '../services/API';
@@ -90,6 +91,11 @@
 import React, { useEffect, useState } from "react";
 import { predictRow } from "../services/API"; // adjust path if needed
 
+=======
+import React, { useEffect, useState } from "react";
+import { predictRow } from "../services/API"; // adjust path if needed
+
+>>>>>>> edc31102e0138881a46b1d8843669c582eda286d
 // sensors prop should be an object { temperature, pressure, vibration, rpm, ... }
 const SensorChart = ({ sensors }) => {
   const [prediction, setPrediction] = useState(null);

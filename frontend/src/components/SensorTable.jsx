@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 // // import React from 'react';
 // // import { equipmentData } from '../services/API';
 
@@ -178,6 +179,11 @@
 import React, { useEffect, useState } from "react";
 import { fetchSensors } from "../services/API"; // ensure path matches
 
+=======
+import React, { useEffect, useState } from "react";
+import { fetchSensors } from "../services/API"; // ensure path matches
+
+>>>>>>> edc31102e0138881a46b1d8843669c582eda286d
 const SensorTable = () => {
   const [equipment, setEquipment] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -249,6 +255,46 @@ const SensorTable = () => {
               const status = equipmentItem.status || (equipmentItem.maintenanceNeeded ? "Warning" : "Good");
               const health = equipmentItem.health ?? equipmentItem.healthScore ?? Math.round((1 - (equipmentItem.probability ?? 0)) * 100);
               const daysLeft = equipmentItem.daysLeft ?? equipmentItem.remainingDays ?? "-";
+<<<<<<< HEAD
+=======
+
+              return (
+                <tr key={id} className="border-b border-gray-200">
+                  <td className="px-6 py-4">
+                    <div className="font-medium text-gray-900">{name}</div>
+                    <div className="text-sm text-gray-500">{id}</div>
+                  </td>
+                  <td className="px-6 py-4">
+                    <span className={`inline-flex px-2 py-1 text-xs font-semibold rounded-full ${
+                      status === 'Good' ? 'bg-green-100 text-green-800' :
+                      status === 'Warning' ? 'bg-yellow-100 text-yellow-800' :
+                      'bg-red-100 text-red-800'
+                    }`}>
+                      {status}
+                    </span>
+                  </td>
+                  <td className="px-6 py-4">
+                    <div className="flex items-center">
+                      <span className="mr-2">{health}%</span>
+                      <div className="w-16 bg-gray-200 rounded-full h-2">
+                        <div
+                          className={`h-2 rounded-full ${health >= 80 ? 'bg-green-500' : health >= 50 ? 'bg-yellow-500' : 'bg-red-500'}`}
+                          style={{ width: `${health}%` }}
+                        />
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-6 py-4 text-gray-900">{daysLeft} {typeof daysLeft === "number" ? "days" : ""}</td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </div>
+  );
+};
+>>>>>>> edc31102e0138881a46b1d8843669c582eda286d
 
               return (
                 <tr key={id} className="border-b border-gray-200">

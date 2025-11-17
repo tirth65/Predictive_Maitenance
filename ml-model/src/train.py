@@ -41,6 +41,17 @@ from src.features import add_features
 
 from sklearn.ensemble import RandomForestClassifier
 
+# Optional: PyTorch for LSTM
+try:
+    import torch
+    from torch import nn
+    from torch.utils.data import Dataset, DataLoader
+except Exception:
+    torch = None  # type: ignore
+    nn = None  # type: ignore
+    Dataset = object  # type: ignore
+    DataLoader = None  # type: ignore
+
 
 
 
@@ -399,7 +410,7 @@ def train_lightgbm(
                 except Exception:
                     pass
                 finally:
-                    plt.close()
+#                     plt.close()
 
     # Persist last model and feature columns
     feature_columns = X_train.columns.tolist()
@@ -407,3 +418,4 @@ def train_lightgbm(
     joblib.dump(model, os.path.join(models_dir, "lgb_model.pkl"))
     print(f"✅ LightGBM model saved at {os.path.join(models_dir, 'lgb_model.pkl')}")
     return model
+

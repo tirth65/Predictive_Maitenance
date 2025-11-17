@@ -1,584 +1,516 @@
-# # # # app.py
-# # # from fastapi import FastAPI
-# # # from pydantic import BaseModel
-# # # import pandas as pd
-# # # import joblib
-# # # import numpy as np
-# # # from src.preprocess import preprocess_data
-# # # from src.features import add_features
-
-# # # # -----------------------------
-# # # # Load model, scaler, features
-# # # # -----------------------------
-# # # MODEL_PATH = "models/predictive_model.pkl"
-# # # SCALER_PATH = "models/scaler.pkl"
-# # # FEATURES_PATH = "models/feature_columns.pkl"
-
-# # # model = joblib.load(MODEL_PATH)
-# # # scaler = joblib.load(SCALER_PATH)
-# # # feature_columns = joblib.load(FEATURES_PATH)
-
-# # # # -----------------------------
-# # # # FastAPI setup
-# # # # -----------------------------
-# # # app = FastAPI(title="Predictive Maintenance API")
-
-# # # # Pydantic model for input validation
-# # # class SensorData(BaseModel):
-# # #     temperature: float
-# # #     vibration: float
-# # #     pressure: float
-# # #     rpm: float
-# # #     temp_change: float = 0.0
-# # #     vib_change: float = 0.0
-# # #     Timestamp: str = None
-# # #     torque: float = 0.0  # optional, for feature engineering
-
-# # # # -----------------------------
-# # # # Helper function
-# # # # -----------------------------
-# # # def prepare_input(data: pd.DataFrame) -> pd.DataFrame:
-# # #     """Preprocess, feature engineer, scale, and align columns."""
-# # #     df = preprocess_data(data)
-# # #     df = add_features(df)
-
-# # #     # Keep only trained features and fill missing with 0
-# # #     df = df.reindex(columns=feature_columns, fill_value=0)
-
-# # #     # Scale
-# # #     df_scaled = scaler.transform(df)
-# # #     return df_scaled
-
-# # # # -----------------------------
-# # # # API endpoint
-# # # # -----------------------------
-# # # @app.post("/predict")
-# # # def predict(data: SensorData):
-# # #     df = pd.DataFrame([data.dict()])
-# # #     X_prepared = prepare_input(df)
-
-# # #     prediction = model.predict(X_prepared)[0]
-# # #     probability = model.predict_proba(X_prepared)[:, 1][0]
-
-# # #     return {
-# # #         "prediction": int(prediction),
-# # #         "probability": float(probability)
-# # #     }
-
-# # # # -----------------------------
-# # # # Run server
-# # # # -----------------------------
-# # # if __name__ == "__main__":
-# # #     import uvicorn
-# # #     uvicorn.run(app, host="0.0.0.0", port=8000)
-
-
-# # from fastapi import FastAPI
-# # from fastapi.middleware.cors import CORSMiddleware
-# # import joblib
-# # import os
-# # import pandas as pd
-# # from pydantic import BaseModel
-
-# # class InputData(BaseModel):
-# #     temperature: float
-# #     pressure: float
-# #     vibration: float
-# #     humidity: float
-# #     rpm: float
-# #     torque: float
-# #     timestamp: str
-# #     # add raw feaures that your preprocess_data() + add_features() expect
-
-# # app = FastAPI()
-
-# # app.add_middleware(
-# #     CORSMiddleware,
-# #     allow_origins=["*"],
-# #     allow_credentials=True,
-# #     allow_methods=["*"],
-# #     allow_headers=["*"],
-# # )
-
-# # # Build absolute path to models directory
-# # BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# # MODELS_DIR = os.path.join(BASE_DIR, "models")
-
-# # # Load all models
-# # models = {
-# #     "rf": joblib.load(os.path.join(MODELS_DIR, "rf_model.pkl")),
-# #     "gb": joblib.load(os.path.join(MODELS_DIR, "gb_model.pkl")),
-# #     "xgb": joblib.load(os.path.join(MODELS_DIR, "xgb_model.pkl")),
-# # }
-
-# # @app.post("/predict/{model_name}")
-# # def predict(model_name: str, data: InputData):
-# #     if model_name not in models:
-# #         return {"error": f"Model '{model_name}' not found. Available: {list(models.keys())}"}
-# #     
-# #     df = pd.DataFrame([data.dict()])
-# #     prediction = models[model_name].predict(df)
-# #     return {"model": model_name, "prediction": prediction.tolist()}
-
-
-# from flask import Flask, request, jsonify
-# from flask_cors import CORS
-# import numpy as np
-# import os
-# import joblib
-# import pandas as pd
-
-# app = Flask(__name__)
-# CORS(app)  # Allow frontend (React) to communicate with backend
-
-# # --- Load trained model and feature columns ---
-# BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-# MODEL_PATH = os.path.join(BASE_DIR, "models", "gb_model.pkl")
-# FEATURES_PATH = os.path.join(BASE_DIR, "models", "feature_columns.pkl")
-
-# try:
-# 	model = joblib.load(MODEL_PATH)
-# 	print(f"Model loaded from {MODEL_PATH}")
-# except FileNotFoundError:
-# 	model = None
-# 	print(f"Model not found at {MODEL_PATH}. Prediction API will not work until model is loaded.")
-
-# try:
-# 	feature_columns = joblib.load(FEATURES_PATH)
-# 	if isinstance(feature_columns, dict) and "columns" in feature_columns:
-# 		feature_columns = feature_columns["columns"]
-# 	# Validate against model expectation
-# 	n_expected = getattr(model, "n_features_in_", None) if model is not None else None
-# 	if isinstance(feature_columns, (list, tuple)) and n_expected is not None and len(feature_columns) != n_expected:
-# 		print(f"Warning: feature_columns length {len(feature_columns)} != model expects {n_expected}. Falling back to model order only.")
-# 		feature_columns = None
-# 	else:
-# 		if isinstance(feature_columns, (list, tuple)):
-# 			print(f"Feature columns loaded: {len(feature_columns)}")
-# 		else:
-# 			feature_columns = None
-# 			print("feature_columns.pkl not in expected format. Using fallback.")
-# except Exception:
-# 	feature_columns = None
-# 	print("feature_columns.pkl not found. Falling back to model.n_features_in_.")
-
-# # --- Home route ---
-# @app.route("/", methods=["GET"])
-# def home():
-# 	return jsonify({
-# 		"message": "Predictive Maintenance API is running!",
-# 		"endpoints": {
-# 			"predict": "/predict (POST JSON: {\"sensors\": [...]})",
-# 			"predict_file": "/predict_file (POST multipart/form-data with file=CSV)",
-# 		}
-# 	})
-
-
-# def _expected_n_features():
-# 	return getattr(model, "n_features_in_", None) if model is not None else None
-
-
-# def _pad_or_trim(values: np.ndarray) -> np.ndarray:
-# 	"""Ensure correct feature length by padding with zeros or trimming."""
-# 	n = _expected_n_features()
-# 	if n is None:
-# 		return values.reshape(1, -1)
-# 	# flatten to 1D then adjust
-# 	arr = values.astype(float).ravel()
-# 	if arr.size < n:
-# 		arr = np.pad(arr, (0, n - arr.size), mode="constant")
-# 	elif arr.size > n:
-# 		arr = arr[:n]
-# 	return arr.reshape(1, -1)
-
-
-# def _align_features_from_row(row_like):
-# 	"""Aligns incoming row (dict or pandas Series/list) to trained feature order.
-# 	- If `feature_columns` list exists, map by column names when possible.
-# 	- Otherwise, pad/trim to model.n_features_in_.
-# 	"""
-# 	if isinstance(row_like, dict):
-# 		# Map frontend field names to training data column names
-# 		field_mapping = {
-# 			'temperature': 'Temperature',
-# 			'vibration': 'Vibration', 
-# 			'pressure': 'Pressure',
-# 			'rpm': 'RPM'
-# 		}
-		
-# 		# Convert frontend field names to training column names
-# 		mapped_row = {}
-# 		for frontend_key, value in row_like.items():
-# 			training_key = field_mapping.get(frontend_key, frontend_key)
-# 			mapped_row[training_key] = value
-		
-# 		if feature_columns is None:
-# 			values = list(mapped_row.values())
-# 			return _pad_or_trim(np.array(values, dtype=float))
-# 		# map by column name; missing -> 0
-# 		ordered = [mapped_row.get(col, 0) for col in feature_columns]
-# 		return _pad_or_trim(np.array(ordered, dtype=float))
-
-# 	# list/array pathway
-# 	values = np.array(row_like, dtype=float)
-# 	return _pad_or_trim(values)
-
-
-# # --- Prediction API (single row) ---
-# @app.route("/predict", methods=["POST"])
-# def predict():
-# 	if model is None:
-# 		return jsonify({"error": "Model not loaded"}), 500
-# 	try:
-# 		data = request.get_json(silent=True) or {}
-# 		sensors = data.get("sensors")
-# 		if sensors is None:
-# 			return jsonify({"error": "Body must include 'sensors' as list or object"}), 400
-
-# 		X = _align_features_from_row(sensors)
-# 		prediction = model.predict(X).tolist()[0]
-
-# 		response = {"prediction": prediction}
-# 		if hasattr(model, "predict_proba"):
-# 			try:
-# 				prob = float(model.predict_proba(X)[:, 1][0])
-# 				response["probability"] = prob
-# 			except Exception:
-# 				pass
-# 		return jsonify(response)
-
-# 	except Exception as e:
-# 		return jsonify({"error": str(e)}), 400
-
-
-# # --- Batch Prediction via CSV upload ---
-# @app.route("/predict_file", methods=["POST"])
-# def predict_file():
-# 	if model is None:
-# 		return jsonify({"error": "Model not loaded"}), 500
-# 	try:
-# 		if "file" not in request.files:
-# 			return jsonify({"error": "No file part in request"}), 400
-# 		file = request.files["file"]
-# 		if file.filename == "":
-# 			return jsonify({"error": "No selected file"}), 400
-
-# 		# Read CSV to DataFrame
-# 		df = pd.read_csv(file)
-
-# 		n = _expected_n_features() or df.shape[1]
-# 		if feature_columns is not None:
-# 			# Keep only trained features and fill missing with 0
-# 			df_aligned = df.reindex(columns=feature_columns, fill_value=0)
-# 			# If still mismatched, trim/pad
-# 			if df_aligned.shape[1] != n:
-# 				cols = list(df_aligned.columns)[:n]
-# 				while len(cols) < n:
-# 					cols.append(f"__pad_{len(cols)}")
-# 				df_aligned = df_aligned.reindex(columns=cols, fill_value=0)
-# 		else:
-# 			# Fall back: take first n columns and pad with zeros if needed
-# 			if df.shape[1] >= n:
-# 				df_aligned = df.iloc[:, :n]
-# 			else:
-# 				df_aligned = df.copy()
-# 				for i in range(df.shape[1], n):
-# 					df_aligned[f"__pad_{i}"] = 0
-
-# 		preds = model.predict(df_aligned)
-# 		response = {
-# 			"count": int(len(preds)),
-# 			"predictions": preds.tolist(),
-# 		}
-# 		if hasattr(model, "predict_proba"):
-# 			try:
-# 				probs = model.predict_proba(df_aligned)[:, 1].tolist()
-# 				response["probabilities"] = probs
-# 			except Exception:
-# 				pass
-
-# 		return jsonify(response)
-
-# 	except Exception as e:
-# 		return jsonify({"error": str(e)}), 400
-
-
-# # --- Run Server ---
-# if __name__ == "__main__":
-#     # force ML server to use port 8000 so it doesn't conflict with Node
-#     app.run(host="0.0.0.0", port=8000, debug=True)
-# # (from) D:\SGP_5\Predictive_Maitenance\ml-model
-
-# ml-model/app.py
-import os
-import logging
-from typing import Optional, List, Any, Dict
-
+# ------------------------ app.py (CLEAN + FIXED) ------------------------
 from flask import Flask, request, jsonify
 from flask_cors import CORS
+import os
+import sys
+import json
 import joblib
 import numpy as np
 import pandas as pd
+import traceback
+from datetime import datetime, timedelta
+import logging
 
-# --- Logging ---
-logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
-logger = logging.getLogger("ml-model")
+# ---------------- Logger Setup ----------------
+logger = logging.getLogger("ml-api")
+logger.setLevel(logging.INFO)
+console = logging.StreamHandler()
+console.setFormatter(logging.Formatter("%(asctime)s — %(levelname)s — %(message)s"))
+logger.addHandler(console)
 
+# ---------------- Flask App ----------------
 app = Flask(__name__)
 CORS(app)
 
-# --- Paths & model metadata ---
+# ---------------- Paths ----------------
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 MODELS_DIR = os.path.join(BASE_DIR, "models")
-MODEL_FILENAME = "gb_model.pkl"  # adjust if different
-FEATURES_FILENAME = "feature_columns.pkl"
+REPORT_PATH = os.path.join(MODELS_DIR, "load_report.txt")
 
-MODEL_PATH = os.path.join(MODELS_DIR, MODEL_FILENAME)
-FEATURES_PATH = os.path.join(MODELS_DIR, FEATURES_FILENAME)
+sys.path.append(os.path.join(BASE_DIR, "src"))
 
-MODEL_VERSION = MODEL_FILENAME
+from src.preprocess import preprocess_data
+from src.features import add_features
 
-# --- Load model ---
-model = None
-try:
-    model = joblib.load(MODEL_PATH)
-    logger.info("Model loaded from %s", MODEL_PATH)
-except FileNotFoundError:
-    logger.warning("Model file not found at %s. Prediction endpoints will return error.", MODEL_PATH)
-except Exception as e:
-    logger.exception("Failed to load model: %s", e)
+lstm_model = None
+lstm_scaler = None
+lstm_feature_cols = None
+lstm_seq_len = None
+lstm_device = None
 
-# --- Load feature columns if present ---
-feature_columns: Optional[List[str]] = None
-try:
-    if os.path.exists(FEATURES_PATH):
-        feature_columns_raw = joblib.load(FEATURES_PATH)
-        # feature_columns.pkl may be a dict like {"columns": [...]}
-        if isinstance(feature_columns_raw, dict) and "columns" in feature_columns_raw:
-            feature_columns = list(feature_columns_raw["columns"])
-        elif isinstance(feature_columns_raw, (list, tuple, pd.Index)):
-            feature_columns = list(feature_columns_raw)
+rf_model = None
+rf_feature_cols = None
+
+logger.info(f"Models directory: {MODELS_DIR}")
+os.makedirs(MODELS_DIR, exist_ok=True)
+
+
+def write_report(text):
+    try:
+        with open(REPORT_PATH, "a", encoding="utf-8") as f:
+            f.write(f"{datetime.utcnow().isoformat()}Z - {text}\n")
+    except:
+        logger.warning("Failed to write to load_report.txt")
+
+
+# ---------------- Load metadata ----------------
+meta_path = os.path.join(MODELS_DIR, "lstm_meta.json")
+meta = {}
+
+if os.path.exists(meta_path):
+    try:
+        meta = json.load(open(meta_path, "r"))
+        logger.info(f"Loaded lstm_meta.json: {meta}")
+    except Exception as e:
+        logger.error(f"Failed to load lstm_meta.json: {e}")
+else:
+    logger.warning("lstm_meta.json not found. Will infer metadata if needed.")
+
+# ---------------- Load Feature Columns ----------------
+feat_path = os.path.join(MODELS_DIR, "feature_columns.pkl")
+if os.path.exists(feat_path):
+    try:
+        feature_cols = joblib.load(feat_path)
+        # Some workspaces accidentally ship a truncated column file (only base sensors).
+        # Treat anything extremely small as suspicious so we can fall back to metadata
+        # coming from the serialized models themselves.
+        if isinstance(feature_cols, (list, tuple)) and len(feature_cols) >= 16:
+            lstm_feature_cols = list(feature_cols)
+            rf_feature_cols = list(feature_cols)
+            logger.info(f"Loaded {len(feature_cols)} feature columns.")
         else:
-            # try to coerce pandas Series
-            try:
-                feature_columns = list(pd.Index(feature_columns_raw))
-            except Exception:
-                feature_columns = None
+            logger.warning(
+                "feature_columns.pkl contained only %s columns - ignoring and "
+                "using model metadata instead.",
+                len(feature_cols) if hasattr(feature_cols, "__len__") else "unknown",
+            )
+            feature_cols = None
+    except Exception as e:
+        lstm_feature_cols = None
+        rf_feature_cols = None
+        logger.error(f"Failed to load feature_columns.pkl: {e}")
+else:
+    logger.warning("feature_columns.pkl not found.")
 
-        logger.info("Loaded feature_columns: %s (len=%s)", "(available)" if feature_columns else "(none)", len(feature_columns) if feature_columns else 0)
-    else:
-        logger.info("feature_columns.pkl not found at %s", FEATURES_PATH)
-except Exception as e:
-    feature_columns = None
-    logger.exception("Error loading feature_columns: %s", e)
+# ---------------- Load Scaler ----------------
+scaler_path = os.path.join(MODELS_DIR, "scaler.pkl")
+if os.path.exists(scaler_path):
+    try:
+        lstm_scaler = joblib.load(scaler_path)
+        logger.info("Scaler loaded.")
+    except Exception as e:
+        logger.error(f"Failed to load scaler.pkl: {e}")
+else:
+    logger.warning("scaler.pkl not found.")
 
-# Utility to get expected feature count from model
-def expected_n_features() -> Optional[int]:
-    return getattr(model, "n_features_in_", None) if model is not None else None
+# ---------------- Load LSTM Model ----------------
+lstm_ckpt_path = os.path.join(MODELS_DIR, "lstm_model.pt")
 
-# Mapping from frontend field names -> training column names.
-# Extend this mapping if your frontend uses different names.
-FIELD_MAPPING: Dict[str, str] = {
-    "temperature": "Temperature",
-    "vibration": "Vibration",
-    "pressure": "Pressure",
-    "rpm": "RPM",
-    "torque": "Torque",
-    "humidity": "Humidity",
-    # add more mappings as needed
+if os.path.exists(lstm_ckpt_path):
+    logger.info("Found lstm_model.pt, attempting to load...")
+
+    try:
+        import torch
+        from src.lstm_model import LSTMRegressor, load_model as helper_load_model, predict_dataframe as helper_predict_dataframe
+
+        try:
+            # Use helper load if available
+            model_obj, scaler_h, feature_h, seq_len_h, device_h = helper_load_model(MODELS_DIR)
+            lstm_model = model_obj
+            lstm_scaler = lstm_scaler or scaler_h
+            lstm_feature_cols = lstm_feature_cols or feature_h
+            lstm_seq_len = seq_len_h
+            lstm_device = device_h
+            logger.info("Loaded LSTM via helper loader.")
+        except Exception as helperErr:
+            logger.warning(f"Helper load failed: {helperErr}")
+
+            ckpt = torch.load(lstm_ckpt_path, map_location="cpu")
+            state_dict = ckpt.get("model_state_dict") or ckpt
+
+            input_size = meta.get("input_size") or len(lstm_feature_cols)
+            hidden_size = meta.get("hidden_size", 64)
+            num_layers = meta.get("num_layers", 1)
+            dropout = meta.get("dropout", 0.0)
+
+            model = LSTMRegressor(
+                input_size=int(input_size),
+                hidden_size=int(hidden_size),
+                num_layers=int(num_layers),
+                dropout=float(dropout) if num_layers > 1 else 0.0
+            )
+
+            model.load_state_dict(state_dict, strict=False)
+            lstm_model = model
+            lstm_seq_len = meta.get("seq_len")
+            lstm_device = "cpu"
+            logger.info("Loaded LSTM using fallback loader.")
+
+        lstm_model.eval()
+
+    except Exception as e:
+        lstm_model = None
+        logger.error(f"Failed to load LSTM: {e}")
+
+else:
+    logger.warning("No lstm_model.pt found; LSTM predictions will not work.")
+
+# ---------------- Load Random Forest Model ----------------
+rf_model_path = os.path.join(MODELS_DIR, "rf_model.pkl")
+if os.path.exists(rf_model_path):
+    try:
+        rf_model = joblib.load(rf_model_path)
+        logger.info("Loaded Random Forest model.")
+        if not rf_feature_cols:
+            names = getattr(rf_model, "feature_names_in_", None)
+            if names is not None:
+                rf_feature_cols = list(names)
+                logger.info(f"Derived {len(rf_feature_cols)} RF feature columns from model metadata.")
+    except Exception as e:
+        rf_model = None
+        logger.error(f"Failed to load rf_model.pkl: {e}")
+else:
+    logger.warning("rf_model.pkl not found. RF predictions disabled.")
+
+
+# ---------------- Helper constants & utilities ----------------
+SENSOR_KEYS = ["temperature", "vibration", "pressure", "rpm"]
+SENSOR_ALIASES = {
+    "temperature": ["temperature", "temp", "tempc", "temperaturec", "temperature_deg_c", "temperaturedegc"],
+    "vibration": ["vibration", "vibe", "vibrationlevel", "vibration_mm_s", "vibrationmms"],
+    "pressure": ["pressure", "press", "pressurepsi", "psi", "pressurebar", "bar"],
+    "rpm": ["rpm", "speed", "rotationspeed", "rotationalspeed", "shaftspeed"],
 }
 
-def _to_number_safe(x: Any, default: float = 0.0) -> float:
+RECOMMENDATIONS = {
+    "High": [
+        "Immediate inspection required",
+        "Reduce load and schedule downtime",
+        "Verify lubrication and alignment",
+    ],
+    "Medium": [
+        "Monitor twice daily",
+        "Plan maintenance within one week",
+        "Check for abnormal vibration spikes",
+    ],
+    "Low": [
+        "Continue normal operation",
+        "Review weekly sensor trends",
+        "Keep maintenance schedule on track",
+    ],
+}
+
+HEURISTIC_RULES = {
+    "temperature": {"start": 60.0, "span": 15.0, "weight": 0.25},
+    "pressure": {"start": 45.0, "span": 10.0, "weight": 0.2},
+    "vibration": {"start": 1.2, "span": 1.5, "weight": 0.45},
+    "rpm": {"start": 1500.0, "span": 150.0, "weight": 0.1},
+}
+
+# ---------------- Helper for scaling sequences ----------------
+def apply_lstm_scaler(seq):
+    if lstm_scaler is None:
+        return seq
     try:
-        return float(x)
-    except Exception:
-        return default
+        b, sl, f = seq.shape
+        flat = seq.reshape(b * sl, f)
+        scaled = lstm_scaler.transform(flat)
+        return scaled.reshape(b, sl, f)
+    except Exception as e:
+        logger.warning(f"Scaler failed: {e}")
+        return seq
 
-def _pad_or_trim_array(arr: np.ndarray) -> np.ndarray:
-    """Pad with zeros or trim to expected_n_features()."""
-    n = expected_n_features()
-    arr = np.asarray(arr).astype(float).ravel()
-    if n is None:
-        return arr.reshape(1, -1)
-    if arr.size < n:
-        arr = np.pad(arr, (0, n - arr.size), mode="constant", constant_values=0.0)
-    elif arr.size > n:
-        arr = arr[:n]
-    return arr.reshape(1, -1)
 
-def _align_row_by_feature_columns(mapped_row: Dict[str, Any]) -> np.ndarray:
-    """If feature_columns available, return ordered array matching them (missing -> 0)."""
-    assert feature_columns is not None
-    ordered = []
-    for col in feature_columns:
-        # try exact match
-        if col in mapped_row:
-            val = mapped_row[col]
+def normalize_key(key: str) -> str:
+    return "".join(ch for ch in key.lower() if ch.isalnum())
+
+
+def sanitize_number(value):
+    if value in ("", None):
+        return None
+    try:
+        num = float(value)
+        if np.isnan(num):
+            return None
+        return float(num)
+    except (TypeError, ValueError):
+        return None
+
+
+def normalize_sensors(payload: dict) -> dict:
+    sensors = {}
+    mapped = {}
+    for key, value in (payload or {}).items():
+        norm_key = normalize_key(key)
+        mapped[norm_key] = sanitize_number(value)
+
+    for field in SENSOR_KEYS:
+        aliases = SENSOR_ALIASES.get(field, []) + [field]
+        value = None
+        for alias in aliases:
+            if alias in mapped and mapped[alias] is not None:
+                value = mapped[alias]
+                break
+        sensors[field] = value if value is not None else 0.0
+    return sensors
+
+
+def _excess_ratio(value, start, span):
+    if value is None:
+        return 0.0
+    if value <= start:
+        return 0.0
+    return min(1.5, (value - start) / span)
+
+
+def heuristic_probability_from_sensors(sensors: dict | None) -> float | None:
+    if not sensors:
+        return None
+
+    cleaned = {k: sanitize_number(sensors.get(k)) for k in SENSOR_KEYS}
+    score = 0.0
+    for key, info in HEURISTIC_RULES.items():
+        score += info["weight"] * _excess_ratio(cleaned.get(key), info["start"], info["span"])
+
+    temp = cleaned.get("temperature")
+    vib = cleaned.get("vibration")
+    pressure = cleaned.get("pressure")
+    rpm = cleaned.get("rpm")
+
+    if temp is not None and vib is not None:
+        if temp >= 80 and vib >= 3:
+            score += 0.12
+        elif temp >= 75 and vib >= 2.5:
+            score += 0.1
+        elif temp >= 70 and vib >= 2:
+            score += 0.08
+        elif vib >= 1.5 and temp >= 65:
+            score += 0.05
+
+    if pressure is not None:
+        if pressure >= 58:
+            score += 0.1
+        elif pressure >= 52:
+            score += 0.06
+        elif pressure >= 47:
+            score += 0.03
+
+    if vib is not None and pressure is not None and vib >= 1.5 and pressure >= 47:
+        score += 0.04
+
+    if rpm is not None:
+        if rpm >= 1650:
+            score += 0.06
+        elif rpm >= 1550:
+            score += 0.03
+        elif rpm >= 1500:
+            score += 0.02
+
+    score = max(0.0, min(score, 1.35))
+
+    if score == 0.0:
+        return 0.02
+
+    probability = min(0.99, score ** 0.7)
+    if score < 0.08:
+        probability *= 0.6
+    return float(probability)
+
+
+def build_dataframe_from_sensors(sensors: dict, seq_len: int | None = None) -> pd.DataFrame:
+    seq = seq_len or meta.get("seq_len") or 32
+    seq = max(int(seq), 1)
+    row = {k: sanitize_number(v) if sanitize_number(v) is not None else 0.0 for k, v in sensors.items()}
+
+    df = pd.DataFrame([row] * seq)
+    # create synthetic timestamp for feature builders
+    now = datetime.utcnow()
+    df["timestamp"] = [now - timedelta(minutes=5 * i) for i in range(seq)][::-1]
+    # include default columns expected during training
+    if "failure" not in df.columns:
+        df["failure"] = 0
+    return df
+
+
+def get_rf_feature_columns():
+    if rf_feature_cols:
+        return rf_feature_cols
+    names = getattr(rf_model, "feature_names_in_", None) if rf_model else None
+    if names is not None:
+        return list(names)
+    return lstm_feature_cols
+
+
+def prepare_tabular_features(df: pd.DataFrame) -> pd.DataFrame:
+    df_proc = preprocess_data(df)
+    df_feat = add_features(df_proc, include_trend=False)
+    if "failure" in df_feat.columns:
+        df_feat = df_feat.drop(columns=["failure"])
+    target_cols = get_rf_feature_columns()
+    if target_cols:
+        df_feat = df_feat.reindex(columns=target_cols, fill_value=0)
+    return df_feat.replace([np.inf, -np.inf], 0).fillna(0)
+
+
+def derive_risk(probability: float):
+    if probability is None:
+        return {
+            "risk_level": "Unknown",
+            "health_score": None,
+            "risk_score": None,
+            "remaining_days": None,
+            "recommendations": [],
+        }
+    risk_level = "Low"
+    if probability > 0.66:
+        risk_level = "High"
+    elif probability > 0.33:
+        risk_level = "Medium"
+    health_score = max(0, min(100, round((1 - probability) * 100)))
+    remaining_days = 0 if risk_level == "High" else 7 if risk_level == "Medium" else 30
+    return {
+        "risk_level": risk_level,
+        "health_score": health_score,
+        "risk_score": probability,
+        "remaining_days": remaining_days,
+        "recommendations": RECOMMENDATIONS[risk_level],
+    }
+
+
+def predict_rf_from_sensors(sensors: dict):
+    heuristic_prob = heuristic_probability_from_sensors(sensors)
+
+    if rf_model is None:
+        if heuristic_prob is None:
+            return None
+        probability = heuristic_prob
+        prediction = int(probability >= 0.5)
+        risk = derive_risk(probability)
+        return {
+            "model_used": "Heuristic",
+            "prediction": prediction,
+            "probability": probability,
+            "avg_prediction": probability,
+            "binary_prediction": prediction,
+            **risk,
+            "all_predictions": {"heuristic": prediction},
+            "all_probabilities": {"heuristic": probability},
+            "heuristic_probability": probability,
+        }
+
+    df = build_dataframe_from_sensors(sensors)
+    features = prepare_tabular_features(df)
+    preds = rf_model.predict(features)
+    probs = rf_model.predict_proba(features)[:, 1]
+    probability = float(np.mean(probs))
+
+    if heuristic_prob is not None:
+        if probability is None:
+            probability = heuristic_prob
         else:
-            # try case-insensitive matches and FIELD_MAPPING inverse lookup
-            key_found = None
-            low_col = col.lower()
-            for k in mapped_row.keys():
-                if k.lower() == low_col:
-                    key_found = k
-                    break
-            if key_found is not None:
-                val = mapped_row[key_found]
-            else:
-                # no value provided: default 0
-                val = 0
-        ordered.append(_to_number_safe(val, 0.0))
-    return _pad_or_trim_array(np.array(ordered, dtype=float))
+            probability = float(
+                min(0.99, max(0.0, probability * 0.2 + heuristic_prob * 0.8))
+            )
 
-def _normalize_and_map_input(row_like: Any) -> np.ndarray:
-    """
-    Accepts:
-      - dict (key -> value)
-      - list/tuple/np.ndarray (ordered values)
-      - pandas Series/Row
-    Returns a 2D numpy array ready for model (1 x n_features).
-    """
-    # dict pathway
-    if isinstance(row_like, dict):
-        # map front-end keys to training keys using FIELD_MAPPING
-        mapped_row: Dict[str, Any] = {}
-        for k, v in row_like.items():
-            mapped_key = FIELD_MAPPING.get(k, k)  # if not in mapping, use as-is
-            mapped_row[mapped_key] = v
+    prediction = int(probability >= 0.5)
+    risk = derive_risk(probability)
+    return {
+        "model_used": "RF",
+        "prediction": prediction,
+        "probability": probability,
+        "avg_prediction": probability,
+        "binary_prediction": prediction,
+        **risk,
+        "all_predictions": {"rf": prediction},
+        "all_probabilities": {"rf": probability},
+        "heuristic_probability": heuristic_prob,
+    }
 
-        # If we have explicit feature_columns, use it to order values
-        if feature_columns:
-            return _align_row_by_feature_columns(mapped_row)
 
-        # Else no feature_columns: try to rely on model.n_features_in_
-        values = []
-        # Keep order: try to prefer FIELD_MAPPING order if present
-        # Combine mapped_row.values() as fallback
-        if mapped_row:
-            values = [_to_number_safe(v, 0.0) for v in mapped_row.values()]
-        arr = np.array(values, dtype=float)
-        return _pad_or_trim_array(arr)
-
-    # list/array pathway
-    if isinstance(row_like, (list, tuple, np.ndarray, pd.Series)):
-        arr = np.asarray(row_like, dtype=float)
-        return _pad_or_trim_array(arr)
-
-    # unknown type: try to coerce into array
-    try:
-        arr = np.asarray(list(row_like), dtype=float)
-        return _pad_or_trim_array(arr)
-    except Exception:
-        # fallback: empty zeros
-        n = expected_n_features() or 0
-        return np.zeros((1, n), dtype=float)
-
-# --- Routes ---
-@app.route("/", methods=["GET"])
+# ---------------- ENDPOINTS ----------------
+@app.get("/")
 def home():
     return jsonify({
-        "message": "Predictive Maintenance ML API (Flask)",
-        "model_loaded": model is not None,
-        "model_version": MODEL_VERSION,
-        "expected_features": expected_n_features(),
-        "feature_columns_provided": bool(feature_columns)
+        "message": "LSTM Predictive Maintenance API",
+        "lstm_loaded": lstm_model is not None,
+        "seq_len": lstm_seq_len,
+        "input_size": len(lstm_feature_cols) if lstm_feature_cols else None,
+        "rf_loaded": rf_model is not None,
+        "features": len(rf_feature_cols) if rf_feature_cols else None,
     })
 
-@app.route("/predict", methods=["POST"])
+
+@app.post("/predict")
 def predict():
-    if model is None:
-        return jsonify({"error": "Model not loaded"}), 500
+    data = request.json
+    if not data:
+        return jsonify({"error": "Provide request body"}), 400
+
+    # 1) Tabular sensors path (preferred for UI)
+    if "sensors" in data:
+        sensors = normalize_sensors(data["sensors"])
+        rf_result = predict_rf_from_sensors(sensors)
+        if rf_result:
+            return jsonify(rf_result)
+        # If RF unavailable, fall back to LSTM via synthetic sequence
+        data["sensors_sequence"] = [list(sensors.values())] * (lstm_seq_len or 32)
+
+    # 2) LSTM path (expects pre-built sequence)
+    if lstm_model is None:
+        return jsonify({"error": "No ML model available"}), 500
+
+    if "sensors_sequence" not in data:
+        return jsonify({"error": "Provide 'sensors' or 'sensors_sequence'"}), 400
+
+    seq = np.array(data["sensors_sequence"], dtype=np.float32)
+
+    if seq.ndim == 2:
+        seq = seq[np.newaxis, ...]
+
+    if seq.ndim != 3:
+        return jsonify({"error": "Invalid shape"}), 400
+
+    b, seq_len_r, input_size_r = seq.shape
+
+    if lstm_seq_len and seq_len_r != lstm_seq_len:
+        return jsonify({"error": f"Expected seq_len={lstm_seq_len}, got {seq_len_r}"}), 400
+
+    if lstm_feature_cols and input_size_r != len(lstm_feature_cols):
+        return jsonify({"error": f"Expected input_size={len(lstm_feature_cols)}, got {input_size_r}"}), 400
+
+    seq = apply_lstm_scaler(seq)
 
     try:
-        data = request.get_json(force=True, silent=True) or {}
-        sensors = data.get("sensors")
-        if sensors is None:
-            return jsonify({"error": "Body must include 'sensors' (object or array)"}), 400
+        import torch
+        device = lstm_device or ("cuda" if torch.cuda.is_available() else "cpu")
+        model = lstm_model.to(device)
+        seq_t = torch.tensor(seq, dtype=torch.float32, device=device)
+        with torch.no_grad():
+            out = model(seq_t).cpu().numpy().tolist()
 
-        X = _normalize_and_map_input(sensors)
-        logger.info("Predict: input_shape=%s expected=%s", X.shape, expected_n_features())
+        avg = float(np.mean(out))
+        binary = int(avg > 0.5)
+        risk = derive_risk(avg)
 
-        # model predict
-        pred_raw = model.predict(X)
-        prediction = int(pred_raw.tolist()[0]) if hasattr(pred_raw, "tolist") else int(pred_raw[0])
+        return jsonify({
+            "model_used": "LSTM",
+            "predictions": out,
+            "avg_prediction": avg,
+            "binary_prediction": binary,
+            **risk,
+            "probability": avg,
+            "all_predictions": {"lstm": binary},
+            "all_probabilities": {"lstm": avg},
+        })
 
-        response = {
-            "prediction": prediction,
-            "modelVersion": MODEL_VERSION
-        }
-
-        # probability if available
-        if hasattr(model, "predict_proba"):
-            try:
-                prob = float(model.predict_proba(X)[:, 1][0])
-                response["probability"] = prob
-            except Exception as e:
-                logger.warning("predict_proba failed: %s", e)
-
-        return jsonify(response)
     except Exception as e:
-        logger.exception("Predict error")
-        return jsonify({"error": str(e)}), 500
+        logger.error(f"Inference failed: {e}")
+        return jsonify({"error": "Inference failed", "details": str(e)}), 500
 
-@app.route("/predict_file", methods=["POST"])
-def predict_file():
-    if model is None:
-        return jsonify({"error": "Model not loaded"}), 500
 
-    try:
-        if "file" not in request.files:
-            return jsonify({"error": "No file part in request"}), 400
-        file = request.files["file"]
-        if file.filename == "":
-            return jsonify({"error": "No selected file"}), 400
-
-        # Read CSV into DataFrame
-        df = pd.read_csv(file)
-        logger.info("predict_file: received CSV with shape %s", df.shape)
-
-        n_expected = expected_n_features() or df.shape[1]
-
-        if feature_columns:
-            # align to feature_columns (fill missing with 0)
-            df_aligned = df.reindex(columns=feature_columns, fill_value=0)
-            # if columns still fewer than expected, pad additional __pad columns
-            if df_aligned.shape[1] < n_expected:
-                for i in range(df_aligned.shape[1], n_expected):
-                    df_aligned[f"__pad_{i}"] = 0
-            # if more, trim
-            if df_aligned.shape[1] > n_expected:
-                df_aligned = df_aligned.iloc[:, :n_expected]
-        else:
-            # fallback: trim or pad DataFrame columns to n_expected
-            if df.shape[1] >= n_expected:
-                df_aligned = df.iloc[:, :n_expected].copy()
-            else:
-                df_aligned = df.copy()
-                for i in range(df.shape[1], n_expected):
-                    df_aligned[f"__pad_{i}"] = 0
-
-        # Ensure numeric where possible
-        df_numeric = df_aligned.apply(pd.to_numeric, errors="coerce").fillna(0.0)
-        preds = model.predict(df_numeric)
-        response = {
-            "count": int(len(preds)),
-            "predictions": [int(x) for x in preds.tolist()],
-            "modelVersion": MODEL_VERSION
-        }
-        if hasattr(model, "predict_proba"):
-            try:
-                probs = model.predict_proba(df_numeric)[:, 1].tolist()
-                response["probabilities"] = [float(x) for x in probs]
-            except Exception as e:
-                logger.warning("predict_proba (batch) failed: %s", e)
-
-        return jsonify(response)
-    except Exception as e:
-        logger.exception("predict_file error")
-        return jsonify({"error": str(e)}), 500
-
-# --- Run server ---
+# ---------------- RUN SERVER ----------------
 if __name__ == "__main__":
-    # Run on port 8000 to avoid conflicts with Node backend on 5000
-    logger.info("Starting ML server on port 8000")
+    logger.info("Starting ML server on port 8000...")
     app.run(host="0.0.0.0", port=8000, debug=True)
+
+# ---------------------------------------------------------------------
