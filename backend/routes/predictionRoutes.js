@@ -219,6 +219,7 @@ const router = express.Router();
 const upload = multer(); // in-memory storage
 
 const ML_BASE = process.env.ML_API_URL || "http://localhost:8000";
+const ML_TIMEOUT_MS = Math.max(1000, Number(process.env.ML_TIMEOUT_MS || 3500));
 const SENSOR_KEYS = ["temperature", "vibration", "pressure", "rpm"];
 const SENSOR_ALIASES = {
   temperature: ["temperature", "temp", "tempc", "temperaturec", "temperature_degc", "temperaturedegc"],
@@ -226,6 +227,24 @@ const SENSOR_ALIASES = {
   pressure: ["pressure", "press", "pressurepsi", "psi", "pressurebar", "bar"],
   rpm: ["rpm", "speed", "rotationspeed", "rotationalspeed", "shaftspeed"],
 };
+
+const FILE_PREDICTION_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.FILE_PREDICT_CONCURRENCY || process.env.FILE_PREDICT_POOL || 6)
+);
+const MAX_FILE_ROWS = Math.max(
+  1,
+  Number(process.env.MAX_FILE_PREDICTION_ROWS || process.env.FILE_PREDICT_MAX_ROWS || 750)
+);
+const FILE_FAST_MODE = (process.env.FILE_PREDICT_MODE || "heuristic").toLowerCase();
+const FILE_FAST_THRESHOLD = Math.max(
+  1,
+  Number(process.env.FILE_PREDICT_FAST_THRESHOLD || process.env.FILE_PREDICT_FAST_ROWS || 80)
+);
+const FILE_FAST_CONCURRENCY = Math.max(
+  1,
+  Number(process.env.FILE_PREDICT_FAST_CONCURRENCY || process.env.FILE_PREDICT_FAST_POOL || FILE_PREDICTION_CONCURRENCY)
+);
 
 const RECOMMENDATIONS = {
   High: [
@@ -244,6 +263,17 @@ const RECOMMENDATIONS = {
     "Keep maintenance schedule on track",
   ],
 };
+
+const HEURISTIC_RULES = {
+  temperature: { start: 60.0, span: 15.0, weight: 0.25 },
+  pressure: { start: 45.0, span: 10.0, weight: 0.2 },
+  vibration: { start: 1.2, span: 1.5, weight: 0.45 },
+  rpm: { start: 1500.0, span: 150.0, weight: 0.1 },
+};
+
+function clamp(value, min, max) {
+  return Math.min(Math.max(value, min), max);
+}
 
 function normalizeKey(key = "") {
   return key.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -385,11 +415,11 @@ function formatMlResponse(mlData, overrides = {}) {
 }
 
 async function callMl(payload) {
-  const resp = await axios.post(`${ML_BASE}/predict`, payload, { timeout: 10000 });
+  const resp = await axios.post(`${ML_BASE}/predict`, payload, { timeout: ML_TIMEOUT_MS });
   return resp.data || {};
 }
 
-async function predictFromSensors(sensors) {
+async function predictFromSensors(sensors, { allowHeuristicFallback = false } = {}) {
   const row = buildRowFromSensors(sensors);
   const seqLen = Number(process.env.FORCE_SEQ_LEN) || 32;
   const sensors_sequence = Array.from({ length: seqLen }, () => row);
@@ -400,12 +430,128 @@ async function predictFromSensors(sensors) {
     return formatMlResponse(mlData, { sensors });
   } catch (err) {
     console.error("ML request failed:", err?.response?.data || err?.message || err);
+    if (allowHeuristicFallback) {
+      console.warn("Falling back to heuristic scoring for this row.");
+      return buildHeuristicResponse(sensors);
+    }
     throw err;
   }
 }
 
 function hasAtLeastOneValue(obj = {}) {
   return Object.values(obj).some((val) => val !== undefined);
+}
+
+function heuristicProbabilityFromSensors(sensors = {}) {
+  const cleaned = {};
+  SENSOR_KEYS.forEach((key) => {
+    const val = sanitizeNumber(sensors[key]);
+    cleaned[key] = Number.isFinite(val) ? val : undefined;
+  });
+
+  const excessRatio = (value, start, span) => {
+    if (!Number.isFinite(value) || value <= start) return 0;
+    return clamp((value - start) / span, 0, 1.5);
+  };
+
+  let score = 0;
+  Object.entries(HEURISTIC_RULES).forEach(([key, rule]) => {
+    score += rule.weight * excessRatio(cleaned[key], rule.start, rule.span);
+  });
+
+  const { temperature: temp, vibration: vib, pressure, rpm } = cleaned;
+
+  if (Number.isFinite(temp) && Number.isFinite(vib)) {
+    if (temp >= 80 && vib >= 3) score += 0.12;
+    else if (temp >= 75 && vib >= 2.5) score += 0.1;
+    else if (temp >= 70 && vib >= 2) score += 0.08;
+    else if (vib >= 1.5 && temp >= 65) score += 0.05;
+  }
+
+  if (Number.isFinite(pressure)) {
+    if (pressure >= 58) score += 0.1;
+    else if (pressure >= 52) score += 0.06;
+    else if (pressure >= 47) score += 0.03;
+  }
+
+  if (Number.isFinite(vib) && Number.isFinite(pressure) && vib >= 1.5 && pressure >= 47) {
+    score += 0.04;
+  }
+
+  if (Number.isFinite(rpm)) {
+    if (rpm >= 1650) score += 0.06;
+    else if (rpm >= 1550) score += 0.03;
+    else if (rpm >= 1500) score += 0.02;
+  }
+
+  score = clamp(score, 0, 1.35);
+  if (score === 0) return 0.02;
+  let probability = Math.pow(score, 0.7);
+  if (score < 0.08) probability *= 0.6;
+  return clamp(probability, 0, 0.99);
+}
+
+function buildHeuristicResponse(sensors) {
+  const probability = heuristicProbabilityFromSensors(sensors);
+  const prediction = probability >= 0.5 ? 1 : 0;
+  const insights = deriveInsights(probability, prediction);
+  return {
+    prediction,
+    probability,
+    avg_prediction: probability,
+    binary_prediction: prediction,
+    ...insights,
+    modelUsed: "Heuristic",
+    model_used: "Heuristic",
+    allPredictions: { heuristic: prediction },
+    all_predictions: { heuristic: prediction },
+    allProbabilities: { heuristic: probability },
+    all_probabilities: { heuristic: probability },
+    sensors,
+    raw: { mode: "heuristic" },
+  };
+}
+
+async function processRowsConcurrently(
+  rows,
+  {
+    concurrency = FILE_PREDICTION_CONCURRENCY,
+    predictor = predictFromSensors,
+    useHeuristic = false,
+  } = {}
+) {
+  const usableConcurrency = Math.max(1, Math.min(concurrency, rows.length));
+  const perRowResults = new Array(rows.length);
+  const perRowErrors = [];
+  let cursor = 0;
+
+  async function worker() {
+    while (true) {
+      const idx = cursor++;
+      if (idx >= rows.length) break;
+
+      try {
+        const sensors = normalizeSensorsInput(rows[idx]);
+        if (!hasAtLeastOneValue(sensors)) {
+          perRowErrors.push({ index: idx, reason: "No recognizable sensor values." });
+          continue;
+        }
+        const formatted = useHeuristic ? buildHeuristicResponse(sensors) : await predictor(sensors);
+        perRowResults[idx] = formatted;
+      } catch (err) {
+        perRowErrors.push({
+          index: idx,
+          reason: err?.response?.data?.error || err?.message || "ML request failed",
+        });
+      }
+    }
+  }
+
+  const workers = Array.from({ length: usableConcurrency }, () => worker());
+  await Promise.all(workers);
+
+  const completed = perRowResults.filter(Boolean);
+  return { completed, errors: perRowErrors };
 }
 
 // POST /api/predictions/predict
@@ -457,23 +603,27 @@ router.post("/predict_file", upload.single("file"), async (req, res) => {
       transformHeader: (header) => header?.trim(),
     });
 
-    const rows = (parsed.data || []).filter(
+    const parsedRows = (parsed.data || []).filter(
       (row) => row && Object.values(row).some((value) => value !== null && value !== "")
     );
 
-    if (!rows.length) {
+    if (!parsedRows.length) {
       return res.status(400).json({ error: "CSV does not contain any data rows." });
     }
 
-    const perRowResults = [];
-    for (const row of rows) {
-      const sensors = normalizeSensorsInput(row);
-      if (!hasAtLeastOneValue(sensors)) {
-        continue;
-      }
-      const formatted = await predictFromSensors(sensors);
-      perRowResults.push(formatted);
-    }
+    const rows = parsedRows.slice(0, MAX_FILE_ROWS);
+    const trimmed = parsedRows.length - rows.length;
+    const forceHeuristic = FILE_FAST_MODE === "always";
+    const shouldUseHeuristic =
+      forceHeuristic ||
+      (FILE_FAST_MODE === "auto" && rows.length >= FILE_FAST_THRESHOLD) ||
+      FILE_FAST_MODE === "heuristic";
+
+    const { completed: perRowResults, errors: rowErrors } = await processRowsConcurrently(rows, {
+      concurrency: shouldUseHeuristic ? FILE_FAST_CONCURRENCY : FILE_PREDICTION_CONCURRENCY,
+      predictor: (sensors) => predictFromSensors(sensors, { allowHeuristicFallback: true }),
+      useHeuristic: shouldUseHeuristic,
+    });
 
     if (!perRowResults.length) {
       return res.status(400).json({
@@ -506,6 +656,14 @@ router.post("/predict_file", upload.single("file"), async (req, res) => {
       predictions,
       probabilities,
       rows: perRowResults,
+      meta: {
+        total_rows_in_file: parsedRows.length,
+        processed_rows: perRowResults.length,
+        trimmed_rows: trimmed,
+        concurrency: shouldUseHeuristic ? FILE_FAST_CONCURRENCY : FILE_PREDICTION_CONCURRENCY,
+        mode: shouldUseHeuristic ? "heuristic" : "ml",
+        row_errors: rowErrors,
+      },
     });
   } catch (err) {
     const downstream = err?.response?.data;

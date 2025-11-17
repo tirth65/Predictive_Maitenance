@@ -9,9 +9,12 @@ import Logs from "./pages/Logs";
 
 export default function App() {
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="app-surface">
+      <div className="nebula-blur nebula-one" aria-hidden="true"></div>
+      <div className="nebula-blur nebula-two" aria-hidden="true"></div>
+      <div className="grid-overlay" aria-hidden="true"></div>
       <Navbar />
-      <main className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6">
+      <main className="app-main">
         <Routes>
           <Route path="/" element={<Navigate to="/dashboard" replace />} />
           <Route path="/dashboard" element={<Dashboard />} />

@@ -150,190 +150,236 @@ const PredictionTable = () => {
   };
 
   return (
-    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-      {/* Input Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">Equipment Log Input</h3>
-        <div className="space-y-6">
-          {/* Step 1: CSV Upload */}
+    <div className="prediction-layout">
+      <section className="glass-panel space-y-8">
+        <div className="panel-heading">
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Upload Log File (CSV)</label>
-            <input type="file" accept=".csv" onChange={handleFileChange} className="w-full" />
-            <button
-              onClick={handlePredictFromFile}
-              disabled={!file || loading}
-              className="mt-2 w-full bg-indigo-500 disabled:opacity-60 text-white py-2 px-4 rounded-lg hover:bg-indigo-600"
-            >
-              Predict from File
-            </button>
+            <p className="panel-label">Data Intake</p>
+            <p className="text-xl font-semibold">Equipment Log Input</p>
           </div>
+          <span className="chip chip-live">Live</span>
+        </div>
 
-          {/* Step 2: Guided Form */}
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Or enter parameters</label>
-            <div className="grid grid-cols-2 gap-3">
-              {Object.keys(formValues).map((key) => (
+        <div>
+          <p className="panel-label mb-2">Upload CSV</p>
+          <input
+            type="file"
+            accept=".csv"
+            onChange={handleFileChange}
+            className="w-full text-sm text-slate-200"
+          />
+          <button
+            onClick={handlePredictFromFile}
+            disabled={!file || loading}
+            className="btn-aurora mt-3"
+          >
+            Predict from File
+          </button>
+        </div>
+
+        <div>
+          <p className="panel-label mb-4">Manual Parameters</p>
+          <div className="field-grid">
+            {Object.keys(formValues).map((key) => (
+              <label key={key} className="input-shell">
+                <span className="text-xs uppercase tracking-widest text-slate-400">
+                  {key}
+                </span>
                 <input
-                  key={key}
                   name={key}
                   type="number"
                   value={formValues[key]}
                   onChange={handleFormChange}
-                  placeholder={key.replace('_', ' ')}
-                  className="p-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  placeholder={key.replace("_", " ")}
                 />
-              ))}
-            </div>
-            <button
-              onClick={handlePredictFromForm}
-              disabled={loading}
-              className="mt-2 w-full bg-blue-500 disabled:opacity-60 text-white py-2 px-4 rounded-lg hover:bg-blue-600"
-            >
-              Predict from Parameters
-            </button>
+              </label>
+            ))}
           </div>
+          <button
+            onClick={handlePredictFromForm}
+            disabled={loading}
+            className="btn-ghost mt-3"
+          >
+            Predict from Parameters
+          </button>
+        </div>
 
-          {/* Free-form mock prediction removed intentionally: we only show real model outputs */}
+        {error && (
+          <div className="text-sm text-rose-300">
+            {error}
+          </div>
+        )}
+      </section>
 
-          {error && (
-            <div className="text-red-600 text-sm">{error}</div>
+      <section className="glass-panel result-panel">
+        <div className="panel-heading">
+          <div>
+            <p className="panel-label">Model Output</p>
+            <p className="text-xl font-semibold">Prediction Results</p>
+          </div>
+          {prediction?.modelUsed && (
+            <span className="chip chip-neutral">{prediction.modelUsed}</span>
           )}
         </div>
-      </div>
 
-      {/* Results Section */}
-      <div className="bg-white rounded-lg border border-gray-200 p-6">
-        <h3 className="text-lg font-semibold mb-4">Prediction Results</h3>
         {prediction ? (
-          <div className="space-y-4">
-            {/* Model Information */}
-            {prediction.modelUsed && (
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <p className="text-sm text-blue-800">
-                  <span className="font-medium">Model:</span> {prediction.modelUsed}
-                  {prediction.modelUsed === 'LGB' && <span className="ml-2 text-xs bg-blue-200 px-2 py-1 rounded">LightGBM</span>}
-                </p>
-              </div>
-            )}
-
-            {/* Health and Risk Metrics */}
-            <div className="grid grid-cols-2 gap-4">
-              <RiskGauge value={prediction.healthScore ?? 50} label="Health Score" />
+          <>
+            <div className="result-grid">
+              <RiskGauge
+                value={prediction.healthScore ?? 50}
+                label="Health Score"
+              />
               {prediction.remainingDays !== null && (
-                <div className="bg-gray-50 p-4 rounded-lg">
-                  <div className="text-center">
-                    <div className="text-2xl font-bold text-blue-600">{prediction.remainingDays}</div>
-                    <div className="text-gray-600 text-sm">Days Remaining</div>
-                  </div>
+                <div className="result-callout">
+                  <p className="stat-label">Days Remaining</p>
+                  <p className="stat-value text-sky-200">
+                    {prediction.remainingDays}
+                  </p>
                 </div>
               )}
+              <div
+                className={`result-callout ${
+                  prediction.maintenanceNeeded ? "danger" : ""
+                }`}
+              >
+                <p className="stat-label">Maintenance</p>
+                <p className="text-base font-semibold">
+                  {prediction.maintenanceNeeded
+                    ? "Action required"
+                    : "Running normal"}
+                </p>
+              </div>
             </div>
 
-            {/* Risk Assessment */}
-            <div className="space-y-3">
+            <div className="space-y-4">
               <div>
-                <p className="text-sm font-medium text-gray-700">Risk Assessment</p>
-                <div className="flex items-center gap-3 mt-2">
-                  <span className={`inline-flex px-3 py-1 text-sm font-semibold rounded-full ${
-                    prediction.riskLevel === 'Low' ? 'bg-green-100 text-green-800' :
-                    prediction.riskLevel === 'Medium' ? 'bg-yellow-100 text-yellow-800' :
-                    'bg-red-100 text-red-800'
-                  }`}>
-                    {prediction.riskLevel} Risk
+                <p className="panel-label mb-2">Risk Assessment</p>
+                <div className="flex flex-wrap items-center gap-3">
+                  <span className="chip chip-warning">
+                    {prediction.riskLevel} risk
                   </span>
-                  <span className={`text-sm font-medium ${
-                    prediction.maintenanceNeeded ? 'text-red-600' : 'text-green-600'
-                  }`}>
-                    {prediction.maintenanceNeeded ? '⚠️ Needs Maintenance' : '✅ No Immediate Maintenance'}
+                  <span
+                    className={
+                      prediction.maintenanceNeeded
+                        ? "text-rose-300 font-medium"
+                        : "text-emerald-200 font-medium"
+                    }
+                  >
+                    {prediction.maintenanceNeeded
+                      ? "⚠ Needs Maintenance"
+                      : "✅ No Immediate Maintenance"}
                   </span>
                 </div>
               </div>
 
-              {/* Risk Score Bar */}
               {prediction.riskScore !== undefined && (
                 <div>
-                  <div className="flex justify-between text-sm text-gray-600 mb-1">
+                  <div className="flex justify-between text-xs uppercase tracking-widest text-slate-400 mb-2">
                     <span>Risk Score</span>
                     <span>{Math.round(prediction.riskScore * 100)}%</span>
                   </div>
-                  <div className="w-full bg-gray-200 rounded-full h-2">
-                    <div 
-                      className={`h-2 rounded-full transition-all duration-300 ${
-                        prediction.riskLevel === 'Low' ? 'bg-green-500' :
-                        prediction.riskLevel === 'Medium' ? 'bg-yellow-500' :
-                        'bg-red-500'
-                      }`}
-                      style={{ width: `${prediction.riskScore * 100}%` }}
+                  <div className="h-2 rounded-full bg-slate-800 overflow-hidden">
+                    <div
+                      className="h-full rounded-full transition-all duration-300"
+                      style={{
+                        width: `${prediction.riskScore * 100}%`,
+                        background:
+                          prediction.riskLevel === "Low"
+                            ? "linear-gradient(90deg,#34d399,#10b981)"
+                            : prediction.riskLevel === "Medium"
+                              ? "linear-gradient(90deg,#facc15,#f97316)"
+                              : "linear-gradient(90deg,#f43f5e,#fb7185)",
+                      }}
                     ></div>
                   </div>
                 </div>
               )}
 
-              {/* Probability Display */}
               {prediction.probability !== undefined && (
-                <div className="bg-gray-50 p-3 rounded-lg">
-                  <p className="text-sm text-gray-600">
-                    <span className="font-medium">Failure Probability:</span> {Math.round(prediction.probability * 100)}%
+                <div className="result-callout">
+                  <p className="stat-label">Failure Probability</p>
+                  <p className="text-2xl font-semibold">
+                    {Math.round(prediction.probability * 100)}%
                   </p>
                 </div>
               )}
             </div>
 
-            {/* Recommendations */}
             <div>
-              <p className="text-sm font-medium text-gray-700 mb-2">Recommendations</p>
-              <ul className="space-y-1">
+              <p className="panel-label mb-3">Recommendations</p>
+              <ul className="space-y-2 text-sm text-slate-200">
                 {prediction.recommendations.map((rec, index) => (
-                  <li key={index} className="text-sm text-gray-600 flex items-center">
-                    <CheckCircle className="mr-2 h-4 w-4 text-green-500 flex-shrink-0" />
+                  <li
+                    key={index}
+                    className="flex items-start gap-2 leading-relaxed"
+                  >
+                    <CheckCircle className="mt-0.5 h-4 w-4 text-emerald-300 flex-shrink-0" />
                     {rec}
                   </li>
                 ))}
               </ul>
             </div>
 
-            {/* Model Comparison (if available) */}
-            {prediction.allPredictions && Object.keys(prediction.allPredictions).length > 1 && (
-              <details className="mt-4">
-                <summary className="cursor-pointer text-sm text-gray-600 font-medium">Model Comparison</summary>
-                <div className="mt-2 space-y-2">
-                  {Object.entries(prediction.allPredictions).map(([model, pred]) => (
-                    <div key={model} className="flex justify-between items-center bg-gray-50 p-2 rounded text-xs">
-                      <span className="font-medium">{model.toUpperCase()}</span>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded ${
-                          pred === 1 ? 'bg-red-100 text-red-800' : 'bg-green-100 text-green-800'
-                        }`}>
-                          {pred === 1 ? 'Failure' : 'Normal'}
-                        </span>
-                        {prediction.allProbabilities?.[model] && (
-                          <span className="text-gray-600">
-                            {Math.round(prediction.allProbabilities[model] * 100)}%
+            {prediction.allPredictions &&
+              Object.keys(prediction.allPredictions).length > 1 && (
+                <details className="mt-4">
+                  <summary className="cursor-pointer text-sm text-slate-300">
+                    Model Comparison
+                  </summary>
+                  <div className="mt-2 space-y-2">
+                    {Object.entries(prediction.allPredictions).map(
+                      ([model, pred]) => (
+                        <div
+                          key={model}
+                          className="holo-card flex justify-between text-xs"
+                        >
+                          <span className="font-semibold">
+                            {model.toUpperCase()}
                           </span>
-                        )}
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </details>
-            )}
+                          <div className="flex items-center gap-2">
+                            <span className="chip chip-neutral">
+                              {pred === 1 ? "Failure" : "Normal"}
+                            </span>
+                            {prediction.allProbabilities?.[model] && (
+                              <span className="text-slate-300">
+                                {Math.round(
+                                  prediction.allProbabilities[model] * 100
+                                )}
+                                %
+                              </span>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    )}
+                  </div>
+                </details>
+              )}
 
-            {/* Debug: raw API data */}
             {(debug.request || debug.response) && (
               <details className="mt-4">
-                <summary className="cursor-pointer text-sm text-gray-600">Show debug (raw request/response)</summary>
-                <pre className="mt-2 bg-gray-50 p-3 rounded text-xs overflow-auto max-h-40">{JSON.stringify(debug, null, 2)}</pre>
+                <summary className="cursor-pointer text-sm text-slate-300">
+                  Show debug payload
+                </summary>
+                <pre className="debug-box mt-2">
+                  {JSON.stringify(debug, null, 2)}
+                </pre>
               </details>
             )}
-          </div>
+          </>
         ) : (
-          <div className="text-center py-8 text-gray-500">
-            <TrendingUp className="mx-auto h-12 w-12 text-gray-400 mb-4" />
-            <p>Upload a CSV or enter parameters to generate predictions</p>
+          <div className="text-center text-slate-400 py-10">
+            <TrendingUp className="mx-auto h-12 w-12 text-slate-500 mb-4" />
+            <p>Upload a CSV or enter parameters to generate predictions.</p>
           </div>
         )}
-        {loading && <div className="text-sm text-gray-500 mt-2">Running prediction with LightGBM...</div>}
-      </div>
+
+        {loading && (
+          <p className="text-xs uppercase tracking-widest text-slate-400">
+            Running prediction…
+          </p>
+        )}
+      </section>
     </div>
   );
 };

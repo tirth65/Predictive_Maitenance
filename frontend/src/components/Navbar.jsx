@@ -10,38 +10,36 @@ const Navbar = () => {
   ];
 
   return (
-    <nav className="bg-white border-b border-gray-200 px-6 py-4">
-      <div className="flex items-center justify-between">
-        {/* Logo + Title */}
-        <div className="flex items-center space-x-2">
-          <div className="bg-blue-500 rounded-full p-2">
-            <span className="text-white font-bold text-sm">PM</span>
-          </div>
-          <h1 className="text-xl font-semibold text-gray-900">
-            Predictive Maintenance
-          </h1>
-        </div>
-
-        {/* Navigation Tabs */}
-        <div className="flex space-x-8">
-          {tabs.map((tab) => (
-            <NavLink
-              key={tab.name}
-              to={tab.path}
-              className={({ isActive }) =>
-                `px-3 py-2 text-sm font-medium ${
-                  isActive
-                    ? "text-blue-600 border-b-2 border-blue-600"
-                    : "text-gray-600 hover:text-gray-900"
-                }`
-              }
-            >
-              {tab.name}
-            </NavLink>
-          ))}
+    <header className="nav-shell glass-panel">
+      <div className="nav-brand">
+        <div className="brand-icon">PM</div>
+        <div>
+          <p className="eyebrow">Predictive Core</p>
+          <p className="text-lg font-semibold tracking-tight leading-snug">
+            Maintenance OS
+          </p>
         </div>
       </div>
-    </nav>
+
+      <nav className="nav-tabs">
+        {tabs.map((tab) => (
+          <NavLink
+            key={tab.name}
+            to={tab.path}
+            className={({ isActive }) =>
+              `nav-pill ${isActive ? "is-active" : ""}`
+            }
+          >
+            {tab.name}
+          </NavLink>
+        ))}
+      </nav>
+
+      <div className="nav-status">
+        <span className="pulse-dot" aria-hidden="true"></span>
+        <span>Systems nominal</span>
+      </div>
+    </header>
   );
 };
 
