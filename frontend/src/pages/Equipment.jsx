@@ -64,7 +64,7 @@
 
 // frontend/src/pages/Equipment.jsx
 import React, { useEffect, useState } from "react";
-import { fetchSensors } from "../services/API";
+import { fetchEquipment } from "../services/API";
 
 const Equipment = () => {
   const [items, setItems] = useState([]);
@@ -77,7 +77,7 @@ const Equipment = () => {
       setLoading(true);
       setErr("");
       try {
-        const data = await fetchSensors();
+        const data = await fetchEquipment();
         if (!mounted) return;
         setItems(Array.isArray(data) ? data : []);
       } catch (e) {
@@ -130,25 +130,35 @@ const Equipment = () => {
       <div className="equipment-grid">
         {items.map((equipment) => {
           const id =
+            equipment.machineId ||
             equipment.id ||
             equipment._id ||
-            equipment.machineId ||
+            equipment.assetId ||
             "unknown";
-          const name = equipment.name || equipment.equipment || id;
+          const lastPrediction = equipment.lastPrediction || {};
+          const lastSensors = equipment.lastSensors || {};
           const probability =
             typeof equipment.probability === "number"
               ? equipment.probability
-              : 0;
+              : typeof lastPrediction.probability === "number"
+                ? lastPrediction.probability
+                : 0;
           const status =
             equipment.status ||
+            lastPrediction.riskLevel ||
             (probability > 0.66 ? "Critical" : probability > 0.33 ? "Warning" : "Good");
           const health =
             equipment.health ??
+            lastPrediction.healthScore ??
             Math.round((1 - probability) * 100);
           const daysLeft =
-            equipment.daysLeft ?? equipment.remainingDays ?? "-";
+            equipment.daysLeft ??
+            lastPrediction.remainingDays ??
+            equipment.remainingDays ??
+            "-";
           const risk =
             equipment.risk ??
+            lastPrediction.riskLevel ??
             (status === "Good" ? "Low" : status === "Warning" ? "Medium" : "High");
 
           const chipTone =
@@ -157,6 +167,8 @@ const Equipment = () => {
               : status === "Warning"
                 ? "chip-warning"
                 : "";
+
+          const name = equipment.name || lastPrediction.equipmentName || equipment.equipment || id;
 
           const barColor =
             health >= 80
@@ -195,10 +207,10 @@ const Equipment = () => {
                 </div>
                 <div className="flex flex-wrap gap-2">
                   <span className="chip chip-neutral">
-                    RPM {equipment.rpm ?? "—"}
+                    RPM {lastSensors.rpm ?? equipment.rpm ?? "—"}
                   </span>
                   <span className="chip chip-neutral">
-                    Temp {equipment.temperature ?? "—"}
+                    Temp {lastSensors.temperature ?? equipment.temperature ?? "—"}
                   </span>
                 </div>
               </div>

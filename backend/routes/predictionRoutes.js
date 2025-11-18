@@ -214,6 +214,8 @@ import express from "express";
 import axios from "axios";
 import multer from "multer";
 import Papa from "papaparse";
+import mongoose from "mongoose";
+import EquipmentState from "../models/Equipment.js";
 
 const router = express.Router();
 const upload = multer(); // in-memory storage
@@ -227,6 +229,28 @@ const SENSOR_ALIASES = {
   pressure: ["pressure", "press", "pressurepsi", "psi", "pressurebar", "bar"],
   rpm: ["rpm", "speed", "rotationspeed", "rotationalspeed", "shaftspeed"],
 };
+const MACHINE_ID_ALIASES = [
+  "machineid",
+  "machine",
+  "motor",
+  "motorid",
+  "equipmentid",
+  "equipment",
+  "assetid",
+  "asset",
+  "unit",
+  "deviceid",
+  "id",
+];
+const MACHINE_NAME_ALIASES = [
+  "name",
+  "machinename",
+  "motorname",
+  "equipmentname",
+  "assetname",
+  "label",
+  "unitname",
+];
 
 const FILE_PREDICTION_CONCURRENCY = Math.max(
   1,
@@ -316,6 +340,72 @@ function buildRowFromSensors(sensors) {
     const v = sanitizeNumber(sensors?.[key]);
     return v === undefined ? 0 : v;
   });
+}
+
+function sanitizeText(value) {
+  if (value === undefined || value === null) return null;
+  const str = String(value).trim();
+  return str.length ? str : null;
+}
+
+function extractIdentity(input = {}, defaults = {}) {
+  const normalizedEntries = {};
+  Object.entries(input || {}).forEach(([key, value]) => {
+    const normKey = normalizeKey(key);
+    if (!normKey) return;
+    normalizedEntries[normKey] = value;
+  });
+
+  const findValue = (aliases, fallback) => {
+    for (const alias of aliases) {
+      const candidate = sanitizeText(normalizedEntries[alias]);
+      if (candidate) return candidate;
+    }
+    return sanitizeText(fallback);
+  };
+
+  return {
+    machineId: findValue(MACHINE_ID_ALIASES, defaults.machineId),
+    equipmentName: findValue(MACHINE_NAME_ALIASES, defaults.equipmentName),
+  };
+}
+
+function canPersistEquipment() {
+  return mongoose.connection?.readyState === 1;
+}
+
+async function recordEquipmentSnapshot({ machineId, name, sensors = {}, result }) {
+  if (!machineId || !result || !canPersistEquipment()) return;
+  try {
+    const snapshot = {
+      name: name || machineId,
+      lastPrediction: {
+        prediction: result.prediction ?? result.binary_prediction ?? null,
+        probability: result.probability ?? result.avg_prediction ?? null,
+        healthScore: result.healthScore ?? result.health_score ?? null,
+        riskLevel: result.riskLevel ?? result.risk_level ?? null,
+        remainingDays: result.remainingDays ?? result.remaining_days ?? null,
+        maintenanceNeeded:
+          result.maintenanceNeeded ??
+          result.maintenance_needed ??
+          Number(result.prediction ?? result.binary_prediction ?? 0) >= 1,
+        riskScore: result.riskScore ?? result.risk_score ?? result.probability ?? null,
+        modelUsed: result.model_used || result.modelUsed || null,
+        recommendations: result.recommendations || [],
+        updatedAt: new Date(),
+      },
+      lastSensors: sensors,
+      lastSeenAt: new Date(),
+    };
+
+    await EquipmentState.findOneAndUpdate(
+      { machineId },
+      { $set: snapshot, $setOnInsert: { machineId } },
+      { upsert: true, setDefaultsOnInsert: true }
+    );
+  } catch (err) {
+    console.warn("Equipment snapshot save failed:", err.message);
+  }
 }
 
 function deriveInsights(probability, prediction) {
@@ -531,12 +621,30 @@ async function processRowsConcurrently(
       if (idx >= rows.length) break;
 
       try {
-        const sensors = normalizeSensorsInput(rows[idx]);
+        const rowEntry = rows[idx];
+        const rawSource =
+          rowEntry && Object.prototype.hasOwnProperty.call(rowEntry, "raw")
+            ? rowEntry.raw
+            : rowEntry;
+        const sensors = normalizeSensorsInput(rawSource);
+        const identity = rowEntry?.identity || {};
         if (!hasAtLeastOneValue(sensors)) {
           perRowErrors.push({ index: idx, reason: "No recognizable sensor values." });
           continue;
         }
         const formatted = useHeuristic ? buildHeuristicResponse(sensors) : await predictor(sensors);
+        if (identity.machineId) {
+          await recordEquipmentSnapshot({
+            machineId: identity.machineId,
+            name: identity.equipmentName,
+            sensors,
+            result: formatted,
+          });
+          formatted.machineId = identity.machineId;
+          if (identity.equipmentName) {
+            formatted.equipmentName = identity.equipmentName;
+          }
+        }
         perRowResults[idx] = formatted;
       } catch (err) {
         perRowErrors.push({
@@ -559,6 +667,7 @@ router.post("/predict", async (req, res) => {
   try {
     const body = req.body || {};
 
+    const identity = extractIdentity(body);
     const sensors = normalizeSensorsInput(body);
     if (!hasAtLeastOneValue(sensors)) {
       return res.status(400).json({
@@ -567,6 +676,18 @@ router.post("/predict", async (req, res) => {
     }
 
     const formatted = await predictFromSensors(sensors);
+    if (identity.machineId) {
+      await recordEquipmentSnapshot({
+        machineId: identity.machineId,
+        name: identity.equipmentName,
+        sensors,
+        result: formatted,
+      });
+      formatted.machineId = identity.machineId;
+      if (identity.equipmentName) {
+        formatted.equipmentName = identity.equipmentName;
+      }
+    }
     return res.json(formatted);
   } catch (err) {
     const downstream = err?.response?.data;
@@ -611,7 +732,11 @@ router.post("/predict_file", upload.single("file"), async (req, res) => {
       return res.status(400).json({ error: "CSV does not contain any data rows." });
     }
 
-    const rows = parsedRows.slice(0, MAX_FILE_ROWS);
+    const defaults = extractIdentity(req.body || {});
+    const rows = parsedRows.slice(0, MAX_FILE_ROWS).map((row) => ({
+      raw: row,
+      identity: extractIdentity(row, defaults),
+    }));
     const trimmed = parsedRows.length - rows.length;
     const forceHeuristic = FILE_FAST_MODE === "always";
     const shouldUseHeuristic =

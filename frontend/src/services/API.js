@@ -22,21 +22,30 @@ export const API = axios.create({
 //  PREDICTIONS (LIVE FROM ML SERVER THROUGH BACKEND)
 // ---------------------------------------------------------
 
-export const predictRow = async (sensors) => {
-  // sensors = { temperature: 75, pressure: 50, vibration: 3.2, rpm: 1500 }
-  const { data } = await API.post("/predictions/predict", { sensors });
-  return data; // { prediction, probability, modelVersion }
+export const predictRow = async (payload) => {
+  const body =
+    payload && typeof payload === "object" && !Array.isArray(payload) && payload.sensors
+      ? payload
+      : { sensors: payload };
+
+  const { data } = await API.post("/predictions/predict", body);
+  return data;
 };
 
-export const predictFile = async (file) => {
+export const predictFile = async (file, fields = {}) => {
   const form = new FormData();
   form.append("file", file);
+  Object.entries(fields || {}).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== "") {
+      form.append(key, value);
+    }
+  });
 
   const { data } = await API.post("/predictions/predict_file", form, {
     headers: { "Content-Type": "multipart/form-data" },
   });
 
-  return data; // { count, predictions[], probabilities[] }
+  return data;
 };
 
 // ---------------------------------------------------------
@@ -51,6 +60,9 @@ export const fetchLogs = () =>
 
 export const postSensor = (payload) =>
   API.post("/sensors", payload).then((res) => res.data);
+
+export const fetchEquipment = () =>
+  API.get("/equipment").then((res) => res.data);
 
 // ---------------------------------------------------------
 //  NOTE:

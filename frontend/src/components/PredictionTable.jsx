@@ -12,6 +12,10 @@ const PredictionTable = () => {
     vibration: '',
     rpm: ''
   });
+  const [identity, setIdentity] = useState({
+    machineId: '',
+    equipmentName: ''
+  });
   const [loading, setLoading] = useState(false);
   const [prediction, setPrediction] = useState(null);
   const [error, setError] = useState('');
@@ -35,6 +39,11 @@ const PredictionTable = () => {
   const handleFormChange = (e) => {
     const { name, value } = e.target;
     setFormValues((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleIdentityChange = (e) => {
+    const { name, value } = e.target;
+    setIdentity((prev) => ({ ...prev, [name]: value }));
   };
 
   const toUiFromModel = (data) => {
@@ -76,6 +85,21 @@ const PredictionTable = () => {
       recommendations: recs
     };
   };
+  const attachIdentity = (ui, data, fallback = {}) => ({
+    ...ui,
+    machineId:
+      data.machineId ||
+      data.machine_id ||
+      fallback.machineId ||
+      ui.machineId ||
+      null,
+    equipmentName:
+      data.equipmentName ||
+      data.equipment_name ||
+      fallback.equipmentName ||
+      ui.equipmentName ||
+      null
+  });
 
   const handlePredictFromForm = async () => {
     setError('');
@@ -84,9 +108,14 @@ const PredictionTable = () => {
       const sensors = Object.fromEntries(
         Object.entries(formValues).map(([k, v]) => [k, v === '' ? 0 : Number(v)])
       );
-      const data = await predictRow(sensors);
-      setPrediction(toUiFromModel(data));
-      setDebug({ request: { sensors }, response: data });
+      const payload = {
+        sensors,
+        machineId: identity.machineId || undefined,
+        equipmentName: identity.equipmentName || undefined
+      };
+      const data = await predictRow(payload);
+      setPrediction(attachIdentity(toUiFromModel(data), data, identity));
+      setDebug({ request: { sensors, identity }, response: data });
     } catch (err) {
       setError(formatError(err));
     } finally {
@@ -99,7 +128,10 @@ const PredictionTable = () => {
     setError('');
     setLoading(true);
     try {
-      const data = await predictFile(file);
+      const data = await predictFile(file, {
+        machineId: identity.machineId || undefined,
+        equipmentName: identity.equipmentName || undefined
+      });
       
       // Handle enhanced file prediction response
       if (data.summary) {
@@ -126,7 +158,7 @@ const PredictionTable = () => {
             'Keep monitoring sensor data'
           ]
         });
-        setPrediction(ui);
+        setPrediction(attachIdentity(ui, data, identity));
       } else {
         // Fallback for legacy format
         const probs = data.probabilities || [];
@@ -138,10 +170,10 @@ const PredictionTable = () => {
           prediction: majorityNeeds === undefined ? 0 : (majorityNeeds ? 1 : 0),
           probability: prob,
         });
-        setPrediction(ui);
+        setPrediction(attachIdentity(ui, data, identity));
       }
       
-      setDebug({ request: { file: file.name }, response: data });
+      setDebug({ request: { file: file.name, identity }, response: data });
     } catch (err) {
       setError(formatError(err));
     } finally {
@@ -179,6 +211,32 @@ const PredictionTable = () => {
 
         <div>
           <p className="panel-label mb-4">Manual Parameters</p>
+          <div className="field-grid mb-4">
+            <label className="input-shell">
+              <span className="text-xs uppercase tracking-widest text-slate-400">
+                Motor / Unit ID
+              </span>
+              <input
+                name="machineId"
+                type="text"
+                value={identity.machineId}
+                onChange={handleIdentityChange}
+                placeholder="e.g. PUMP-17A"
+              />
+            </label>
+            <label className="input-shell">
+              <span className="text-xs uppercase tracking-widest text-slate-400">
+                Equipment Name
+              </span>
+              <input
+                name="equipmentName"
+                type="text"
+                value={identity.equipmentName}
+                onChange={handleIdentityChange}
+                placeholder="Optional friendly label"
+              />
+            </label>
+          </div>
           <div className="field-grid">
             {Object.keys(formValues).map((key) => (
               <label key={key} className="input-shell">
@@ -229,6 +287,20 @@ const PredictionTable = () => {
                 value={prediction.healthScore ?? 50}
                 label="Health Score"
               />
+              {(prediction.machineId || prediction.equipmentName) && (
+                <div className="result-callout">
+                  <p className="stat-label">Equipment</p>
+                  <p className="text-base font-semibold text-slate-100">
+                    {prediction.equipmentName && (
+                      <>
+                        {prediction.equipmentName}
+                        {prediction.machineId ? " · " : ""}
+                      </>
+                    )}
+                    {prediction.machineId && <span>Unit {prediction.machineId}</span>}
+                  </p>
+                </div>
+              )}
               {prediction.remainingDays !== null && (
                 <div className="result-callout">
                   <p className="stat-label">Days Remaining</p>

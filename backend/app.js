@@ -4,6 +4,7 @@ import cors from "cors";
 import sensorRoutes from "./routes/sensorRoutes.js";
 import predictionRoutes from "./routes/predictionRoutes.js";
 import maintenanceRoutes from "./routes/maintenanceRoutes.js";
+import equipmentRoutes from "./routes/equipmentRoutes.js";
 
 const app = express();
 
@@ -16,6 +17,7 @@ app.use(express.json({ limit: "1mb" })); // avoid unexpectedly large payloads
 app.use("/api/sensors", sensorRoutes);
 app.use("/api/predictions", predictionRoutes);
 app.use("/api/maintenance", maintenanceRoutes);
+app.use("/api/equipment", equipmentRoutes);
 
 // Health check route
 app.get("/", (req, res) => {

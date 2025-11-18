@@ -162,9 +162,22 @@
 
 // frontend/src/pages/Dashboard.jsx
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { fetchSensors } from "../services/API";
+import { fetchEquipment } from "../services/API";
 
 const resolveStatus = (item) => {
+  // Handle equipment model structure
+  if (item.lastPrediction?.riskLevel) {
+    const risk = item.lastPrediction.riskLevel;
+    if (risk === "High") return "Critical";
+    if (risk === "Medium") return "Warning";
+    return "Good";
+  }
+  if (item.lastPrediction?.healthScore !== undefined) {
+    const health = item.lastPrediction.healthScore;
+    if (health >= 80) return "Good";
+    if (health >= 50) return "Warning";
+    return "Critical";
+  }
   if (item.status) return item.status;
   if (typeof item.health === "number") {
     if (item.health >= 80) return "Good";
@@ -180,6 +193,10 @@ const resolveStatus = (item) => {
 };
 
 const deriveHealth = (item) => {
+  // Handle equipment model structure
+  if (item.lastPrediction?.healthScore !== undefined) {
+    return Math.round(item.lastPrediction.healthScore);
+  }
   if (typeof item.health === "number") return Math.round(item.health);
   const prob =
     typeof item.probability === "number" ? Math.min(Math.max(item.probability, 0), 1) : 0;
@@ -221,13 +238,13 @@ const Dashboard = () => {
     }
     setErr("");
     try {
-      const data = await fetchSensors();
+      const data = await fetchEquipment();
       const safeItems = Array.isArray(data) ? data : [];
       setItems(safeItems);
       setDist(computeDistribution(safeItems));
       setLastUpdated(new Date());
     } catch (e) {
-      setErr(e?.response?.data?.error || e.message || "Failed to load data");
+      setErr(e?.response?.data?.error || e.message || "Failed to load equipment data");
     } finally {
       if (isInitial) {
         setLoading(false);
@@ -299,12 +316,12 @@ const Dashboard = () => {
 
   const getAssetMeta = (equipment) => {
     const id =
+      equipment.machineId ||
       equipment.id ||
       equipment._id ||
-      equipment.machineId ||
       equipment.serial ||
       "unknown";
-    const name = equipment.name || equipment.equipment || id;
+    const name = equipment.name || equipment.equipmentName || equipment.equipment || `Motor ${id}`;
     return { id, name };
   };
 
@@ -428,6 +445,26 @@ const Dashboard = () => {
               <p className="stat-label">Critical Alerts</p>
               <p className="stat-value text-rose-300">{metrics.critical}</p>
               <p className="text-xs text-slate-400 mt-2">Require immediate action</p>
+              {metrics.critical > 0 && (
+                <div className="mt-3 space-y-1">
+                  {items
+                    .filter((i) => resolveStatus(i) === "Critical")
+                    .slice(0, 3)
+                    .map((item) => {
+                      const id = item.machineId || item.id || item._id || "Unknown";
+                      return (
+                        <p key={id} className="text-xs text-rose-300 font-medium">
+                          • Motor {id}
+                        </p>
+                      );
+                    })}
+                  {metrics.critical > 3 && (
+                    <p className="text-xs text-slate-500">
+                      +{metrics.critical - 3} more
+                    </p>
+                  )}
+                </div>
+              )}
             </article>
             <article className="holo-card">
               <p className="stat-label">Warning Signals</p>
@@ -504,9 +541,11 @@ const Dashboard = () => {
                   const status = resolveStatus(asset);
                   const health = deriveHealth(asset);
                   const probability =
-                    typeof asset.probability === "number"
-                      ? Math.round(asset.probability * 100)
-                      : null;
+                    asset.lastPrediction?.probability !== undefined
+                      ? Math.round(asset.lastPrediction.probability * 100)
+                      : typeof asset.probability === "number"
+                        ? Math.round(asset.probability * 100)
+                        : null;
                   const statusTone =
                     status === "Good"
                       ? "chip chip-live"
